@@ -19,6 +19,9 @@
     <ClInclude Include="common.hpp" />
     <ClInclude Include="platform\element.hpp" />
     <ClInclude Include="platform\platform.hpp" />
+    <ClInclude Include="utils\dbg.hpp" />
+    <ClInclude Include="utils\log.hpp" />
+    <ClInclude Include="utils\str.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

@@ -15,5 +15,11 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <algorithm>
+#include <fstream>
+
+#include "utils/dbg.hpp"
+#include "utils/log.hpp"
+#include "utils/str.hpp"
 
 using namespace std;

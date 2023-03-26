@@ -9,5 +9,8 @@
     <ClInclude Include="common.hpp" />
     <ClInclude Include="platform\element.hpp" />
     <ClInclude Include="platform\platform.hpp" />
+    <ClInclude Include="utils\str.hpp" />
+    <ClInclude Include="utils\dbg.hpp" />
+    <ClInclude Include="utils\log.hpp" />
   </ItemGroup>
 </Project>

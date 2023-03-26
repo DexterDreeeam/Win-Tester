@@ -5,6 +5,32 @@
 namespace slim
 {
 
+struct point
+{
+    int x;
+    int y;
+
+    point(int x, int y) :
+        x(x),
+        y(y)
+    {
+    }
+
+    point(POINT pt) :
+        x(pt.x),
+        y(pt.y)
+    {
+    }
+
+    POINT ToPOINT() const
+    {
+        POINT pt;
+        pt.x = x;
+        pt.y = y;
+        return pt;
+    }
+};
+
 struct area
 {
     int left;
@@ -12,6 +38,14 @@ struct area
 
     int top;
     int bottom;
+
+    area() :
+        left(),
+        right(),
+        top(),
+        bottom()
+    {
+    }
 
     area(const RECT& rc) :
         left(rc.left),
@@ -21,9 +55,19 @@ struct area
     {
     }
 
+    bool Inside(point p) const
+    {
+        return Inside(p.x, p.y);
+    }
+
     bool Inside(int x, int y) const
     {
         return x >= left && x <= right && y >= top && y <= bottom;
+    }
+
+    int distance(point p) const
+    {
+        return distance(p.x, p.y);
     }
 
     int distance(int x, int y) const
@@ -52,6 +96,11 @@ struct area
         return x_dis + y_dis;
     }
 
+    float center(point p) const
+    {
+        return center(p.x, p.y);
+    }
+
     // [(r-l)-abs(d1-d2)]/(r-l)
     float center(int x, int y) const
     {
@@ -60,12 +109,12 @@ struct area
             return 0.0f;
         }
 
-        float w = right - left;
+        float w = (float)(right - left);
         if (w <= 0)
         {
             return 0.0f;
         }
-        float h = bottom - top;
+        float h = (float)(bottom - top);
         if (h <= 0)
         {
             return 0.0f;
@@ -77,7 +126,7 @@ struct area
         return x_ctr * y_ctr;
     }
 
-    RECT ToRect() const
+    RECT ToRECT() const
     {
         RECT rc;
         rc.left = this->left;
