@@ -3,9 +3,12 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="UiAutomation.cpp" />
-    <ClCompile Include="Msaa.cpp" />
+    <ClCompile Include="automation.hpp" />
+    <ClCompile Include="Msaa\automation_msaa.cpp" />
+    <ClCompile Include="automation.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.hpp" />
+    <ClInclude Include="Msaa\automation_msaa.hpp" />
   </ItemGroup>
 </Project>

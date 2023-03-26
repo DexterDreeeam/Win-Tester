@@ -1,8 +1,15 @@
+#pragma once
+
 #include <windows.h>
 #include <uiautomation.h>
 
+#include <iostream>
 #include <string>
 #include <vector>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <thread>
 
 template<typename T>
 void _Free(T*& p)
