@@ -48,6 +48,9 @@ void WaitForLastSubmittedFrame();
 FrameContext* WaitForNextFrameResources();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+// Slim
+void SlimLoop();
+
 // Main code
 int main(int, char**)
 {
@@ -133,6 +136,8 @@ int main(int, char**)
         // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
         if (show_demo_window)
             ImGui::ShowDemoWindow(&show_demo_window);
+
+        SlimLoop();
 
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
         {
