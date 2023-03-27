@@ -2,6 +2,7 @@
 
 #include "common.hpp"
 #include "element.hpp"
+#include "element_chain.hpp"
 
 namespace slim
 {
@@ -10,22 +11,12 @@ class platform
 {
     friend class element;
 
-    platform() :
-        ctx(nullptr),
-        con(nullptr)
-    {
-        HRESULT hr;
-        hr = CoCreateInstance(__uuidof(CUIAutomation8), NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&ctx));
-        Tell("create platform failed");
-
-        hr = ctx->CreateTrueCondition(&con);
-        Tell("create true condition failed");
-    }
+    platform();
 
 public:
     static shared_ptr<platform> Instance()
     {
-        return _ins ? _ins : _ins = shared_ptr<platform>(new platform());
+        return _ins ? _ins : (_ins = shared_ptr<platform>(new platform()));
     }
 
     static shared_ptr<platform> I()
@@ -33,20 +24,18 @@ public:
         return Instance();
     }
 
-    ~platform()
-    {
-        Rels(con);
-        Rels(ctx);
-    }
+    ~platform();
 
-    shared_ptr<element> Diagram();
+    shared_ptr<element> Diagram(HWND win = nullptr);
+
+    shared_ptr<element_chain> ElementChainByPoint(point p);
 
 private:
     static shared_ptr<platform> _ins;
 
 private:
-    IUIAutomation*           ctx;
-    IUIAutomationCondition*  con;
+    IUIAutomation*           _ctx;
+    IUIAutomationCondition*  _con;
 };
 
 __declspec(selectany) shared_ptr<platform> platform::_ins = nullptr;

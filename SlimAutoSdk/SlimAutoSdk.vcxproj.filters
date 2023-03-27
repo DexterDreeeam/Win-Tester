@@ -4,6 +4,7 @@
     <ClCompile Include="platform\element.cpp" />
     <ClCompile Include="platform\platform.cpp" />
     <ClCompile Include="platform\area.hpp" />
+    <ClCompile Include="platform\element_chain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.hpp" />
@@ -12,5 +13,7 @@
     <ClInclude Include="utils\str.hpp" />
     <ClInclude Include="utils\dbg.hpp" />
     <ClInclude Include="utils\log.hpp" />
+    <ClInclude Include="platform\element_chain.hpp" />
+    <ClInclude Include="platform\action.hpp" />
   </ItemGroup>
 </Project>

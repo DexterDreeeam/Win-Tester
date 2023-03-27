@@ -10,7 +10,7 @@ struct point
     int x;
     int y;
 
-    point(int x, int y) :
+    point(int x = 0, int y = 0) :
         x(x),
         y(y)
     {
@@ -55,6 +55,11 @@ struct area
     {
     }
 
+    int size() const
+    {
+        return abs(right - left) * abs(bottom - top);
+    }
+
     bool Inside(point p) const
     {
         return Inside(p.x, p.y);
@@ -96,32 +101,32 @@ struct area
         return x_dis + y_dis;
     }
 
-    float center(point p) const
+    double center(point p) const
     {
         return center(p.x, p.y);
     }
 
     // [(r-l)-abs(d1-d2)]/(r-l)
-    float center(int x, int y) const
+    double center(int x, int y) const
     {
         if (distance(x, y) > 0)
         {
             return 0.0f;
         }
 
-        float w = (float)(right - left);
+        double w = (double)(right - left);
         if (w <= 0)
         {
             return 0.0f;
         }
-        float h = (float)(bottom - top);
+        double h = (double)(bottom - top);
         if (h <= 0)
         {
             return 0.0f;
         }
 
-        float x_ctr = (w - abs(left + right - x - x)) / w;
-        float y_ctr = (h - abs(top + bottom - y - y)) / h;
+        double x_ctr = (w - abs(left + right - x - x)) / w;
+        double y_ctr = (h - abs(top + bottom - y - y)) / h;
 
         return x_ctr * y_ctr;
     }
@@ -134,6 +139,21 @@ struct area
         rc.right = this->right;
         rc.bottom = this->bottom;
         return rc;
+    }
+
+    string stringify() const
+    {
+        string str = "";
+        str += '<';
+        str += to_string(left);
+        str += '.';
+        str += to_string(right);
+        str += '.';
+        str += to_string(top);
+        str += '.';
+        str += to_string(bottom);
+        str += '>';
+        return str;
     }
 };
 

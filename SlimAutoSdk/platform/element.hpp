@@ -64,27 +64,45 @@ public:
         return _area;
     }
 
+    bool Interact() const
+    {
+        return _interact;
+    }
+
     bool LoadProperty();
 
-    wstring Proerty(const string& key)
+    string Property(const string& key)
     {
         if (_property.count(key))
         {
             return _property[key];
         }
-        return L"";
+        return "";
     }
 
-private:
+    double InteractGrade(POINT pt)
+    {
+        return InteractGrade(point(pt));
+    }
+
+    double InteractGrade(point p);
+
+    string Identifier();
+
+    string FriendlyIdentifier();
+
+    bool test();
 
 private:
-    shared_ptr<platform>        _plt;
-    int                         _sub_idx;
-    int                         _depth;
-    IUIAutomationElement*       _elm;
-    vector<shared_ptr<element>> _subs;
-    area                        _area;
-    map<string, wstring>        _property;
+    shared_ptr<platform>         _plt;
+    int                          _sub_idx;
+    int                          _depth;
+    IUIAutomationElement*        _elm;
+    vector<shared_ptr<element>>  _subs;
+    area                         _area;
+    map<string, string>          _property;
+    bool                         _property_loaded;
+    bool                         _interact;
 };
 
 template<typename Fn>
@@ -96,5 +114,50 @@ void IterateElement(shared_ptr<element> elm, Fn f)
         IterateElement(elm->Sub(i), f);
     }
 }
+
+__declspec(selectany) set<CONTROLTYPEID> interact_ct =
+{
+    UIA_ButtonControlTypeId,
+    //UIA_CalendarControlTypeId,
+    UIA_CheckBoxControlTypeId,
+    UIA_ComboBoxControlTypeId,
+    UIA_EditControlTypeId,
+    UIA_HyperlinkControlTypeId,
+    UIA_ImageControlTypeId,
+    UIA_ListItemControlTypeId,
+    //UIA_ListControlTypeId,
+    //UIA_MenuControlTypeId,
+    //UIA_MenuBarControlTypeId,
+    UIA_MenuItemControlTypeId,
+    //UIA_ProgressBarControlTypeId,
+    UIA_RadioButtonControlTypeId,
+    //UIA_ScrollBarControlTypeId,
+    //UIA_SliderControlTypeId,
+    //UIA_SpinnerControlTypeId,
+    //UIA_StatusBarControlTypeId,
+    //UIA_TabControlTypeId,
+    UIA_TabItemControlTypeId,
+    UIA_TextControlTypeId,
+    //UIA_ToolBarControlTypeId,
+    //UIA_ToolTipControlTypeId,
+    //UIA_TreeControlTypeId,
+    UIA_TreeItemControlTypeId,
+    //UIA_CustomControlTypeId,
+    //UIA_GroupControlTypeId,
+    //UIA_ThumbControlTypeId,
+    //UIA_DataGridControlTypeId,
+    UIA_DataItemControlTypeId,
+    //UIA_DocumentControlTypeId,
+    UIA_SplitButtonControlTypeId,
+    //UIA_WindowControlTypeId,
+    //UIA_PaneControlTypeId,
+    //UIA_HeaderControlTypeId,
+    UIA_HeaderItemControlTypeId,
+    //UIA_TableControlTypeId,
+    //UIA_TitleBarControlTypeId,
+    //UIA_SeparatorControlTypeId,
+    //UIA_SemanticZoomControlTypeId,
+    //UIA_AppBarControlTypeId,
+};
 
 }

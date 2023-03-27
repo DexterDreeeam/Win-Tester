@@ -4,9 +4,6 @@
 #include <UIAutomation.h>
 #include <UIAutomationClient.h>
 
-#define Tell(e)   { if (FAILED(hr)) { throw e; } }
-#define Rels(ptr)  { if (ptr) { ptr->Release(); ptr = nullptr; } }
-
 #include <iostream>
 #include <string>
 #include <vector>
@@ -17,9 +14,14 @@
 #include <thread>
 #include <algorithm>
 #include <fstream>
+#include <locale>
+#include <math.h>
+
+using namespace std;
 
 #include "utils/dbg.hpp"
 #include "utils/log.hpp"
 #include "utils/str.hpp"
 
-using namespace std;
+#define Tell(e)   { if (FAILED(hr)) { throw e; } }
+#define Rels(ptr)  { if (ptr) { ptr->Release(); ptr = nullptr; } }

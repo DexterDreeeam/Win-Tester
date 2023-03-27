@@ -15,17 +15,7 @@ public:
 
     void Rect(const RECT& rc)
     {
-        RedrawDesktop();
-
-        //auto hWnd = GetConsoleWindow();
-        //HDC hDC = GetDC(NULL);
-        //HBRUSH hBsh = CreateSolidBrush(RGB(0, 0, 255));
-        //FrameRect(hDC, &rc, hBsh);
-        //DeleteObject(hBsh);
-        //ReleaseDC(NULL, hDC);
-
         HDC hDC_Desktop = GetDC(0);
-        /* Draw a simple blue rectangle on the desktop */
         HBRUSH blueBrush = CreateSolidBrush(RGB(212, 205, 0));
         FrameRect(hDC_Desktop, &rc, blueBrush);
     }

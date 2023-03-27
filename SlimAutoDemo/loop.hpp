@@ -3,8 +3,9 @@
 
 struct SlimDemoInfo
 {
-    int test;
-    vector<pair<int, wstring>> chain; // child_idx of parent : name
+    string test;
+    slim::point point;
+    vector<string> chain;
 };
 
 bool SlimLoop(SlimDemoInfo& info);
