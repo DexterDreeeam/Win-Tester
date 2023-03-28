@@ -52,6 +52,11 @@ bool element_chain::Envoke()
     return _ve.front()->Envoke();
 }
 
+bool element_chain::Menu()
+{
+    return _ve.front()->Menu();
+}
+
 bool element_chain::test()
 {
     return _ve.front()->test();

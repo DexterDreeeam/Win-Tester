@@ -28,12 +28,14 @@ void recorder::Loop()
     {
         ac = action(action_type::LEFT_CLICK, chain);
         chain->Envoke();
+        Sleep(500);
     }
-    //else if (GetAsyncKeyState(VK_RSHIFT) & 0x01)
-    //{
-    //    ac.type = action_type::RIGHT_CLICK;
-    //    ac.element_id = chain->Identifier();
-    //}
+    else if (GetAsyncKeyState(VK_RCONTROL))
+    {
+        ac = action(action_type::RIGHT_CLICK, chain);
+        chain->Menu();
+        Sleep(500);
+    }
 
     if (ac.type != action_type::ACTION_NONE)
     {

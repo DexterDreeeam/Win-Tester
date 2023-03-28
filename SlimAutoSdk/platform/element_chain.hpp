@@ -56,7 +56,9 @@ public:
 
     double Matching(const string& str);
 
-    bool Envoke();
+    bool Envoke(); // left click
+
+    bool Menu(); // right click
 
     bool test();
 

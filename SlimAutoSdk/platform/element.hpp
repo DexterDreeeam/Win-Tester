@@ -2,6 +2,7 @@
 
 #include "common.hpp"
 #include "area.hpp"
+#include "identifier.hpp"
 
 namespace slim
 {
@@ -91,7 +92,17 @@ public:
 
     string FriendlyIdentifier();
 
+    void Matching(
+        const vector<element_stack>& es, int es_end, shared_ptr<element> self,
+        double score, vector<pair<shared_ptr<element>, double>>& rst);
+
     bool Envoke();
+
+    bool Envoke2();
+
+    bool Envoke3();
+
+    bool Menu();
 
     bool test();
 

@@ -20,6 +20,8 @@ struct GlobalInfo
     }
 
     bool recording = false;
+    bool running = false;
+
     slim::point point;
     shared_ptr<slim::element_chain> chain;
 };

@@ -1,5 +1,6 @@
 #include "platform.hpp"
 #include "element.hpp"
+#include "identifier.hpp"
 
 namespace slim
 {
@@ -161,25 +162,132 @@ string element::FriendlyIdentifier()
     return id;
 }
 
+void element::Matching(
+    const vector<element_stack>& es, int es_end, shared_ptr<element> self,
+    double score, vector<pair<shared_ptr<element>, double>>& rst)
+{
+    if (!LoadProperty() || es_end < 0)
+    {
+        return;
+    }
+
+    double score_inc = 0;
+    auto& stack = es[es_end];
+
+    string auto_id = Property("AutomationId");
+    int ctl_type = atoi(Property("ControlType").c_str());
+
+    if (stack.automation_id != auto_id || stack.control_type != ctl_type)
+    {
+        return;
+    }
+
+    if (stack.automation_id.size() > 0)
+    {
+        score_inc += 50.0;
+    }
+    if (stack.element_name == Property("Name"))
+    {
+        score_inc += 2.0;
+    }
+    if (stack.sub_index == SubIdx())
+    {
+        score_inc += 0.5;
+    }
+
+    double score_new = score + score_inc;
+    if (es_end == 0)
+    {
+        rst.push_back({ self, score_new });
+        return;
+    }
+
+    for (int i = 0; i < SubCount(); ++i)
+    {
+        auto s = Sub(i);
+        s->Matching(es, es_end - 1, s, score_new, rst);
+    }
+}
+
 bool element::Envoke()
 {
     HRESULT hr;
     IUnknown* pattern;
     hr = _elm->GetCurrentPattern(UIA_InvokePatternId, &pattern);
     Tell("_elm->GetCurrentPattern(UIA_InvokePatternId, &pattern) failed");
-    if (!pattern)
+    if (FAILED(hr) || !pattern)
     {
-        return false;
+        return Envoke2();
     }
 
     IUIAutomationInvokePattern* inv;
     hr = pattern->QueryInterface(&inv);
-    if (!inv)
+    if (FAILED(hr) || !inv)
+    {
+        return Envoke2();
+    }
+
+    hr = inv->Invoke();
+    if (FAILED(hr))
+    {
+        return Envoke2();
+    }
+    return true;
+}
+
+bool element::Envoke2()
+{
+    int x = Area().center().x;
+    int y = Area().center().y;
+    if (!SetCursorPos(x, y))
+    {
+        return false;
+    }
+    Sleep(10);
+    mouse_event(MOUSEEVENTF_LEFTDOWN, x, y, 0, NULL);
+    Sleep(10);
+    mouse_event(MOUSEEVENTF_LEFTUP, x, y, 0, NULL);
+    return true;
+}
+
+bool element::Envoke3()
+{
+    HRESULT hr;
+    IUnknown* pattern;
+    hr = _elm->GetCurrentPattern(UIA_LegacyIAccessiblePatternId, &pattern);
+    Tell("_elm->GetCurrentPattern(UIA_LegacyIAccessiblePatternId, &pattern) failed");
+    if (FAILED(hr) || !pattern)
     {
         return false;
     }
 
-    hr = inv->Invoke();
+    IUIAutomationLegacyIAccessiblePattern* inv;
+    hr = pattern->QueryInterface(&inv);
+    if (FAILED(hr) || !inv)
+    {
+        return false;
+    }
+
+    hr = inv->DoDefaultAction();
+    if (FAILED(hr))
+    {
+        return false;
+    }
+    return true;
+}
+
+bool element::Menu()
+{
+    int x = Area().center().x;
+    int y = Area().center().y;
+    if (!SetCursorPos(x, y))
+    {
+        return false;
+    }
+    Sleep(10);
+    mouse_event(MOUSEEVENTF_RIGHTDOWN, x, y, 0, NULL);
+    Sleep(10);
+    mouse_event(MOUSEEVENTF_RIGHTUP, x, y, 0, NULL);
     return true;
 }
 

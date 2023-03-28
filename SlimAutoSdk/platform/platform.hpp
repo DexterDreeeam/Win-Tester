@@ -30,6 +30,10 @@ public:
 
     shared_ptr<element_chain> ElementChainByPoint(point p);
 
+    void Elements(HWND wnd, point p, vector<pair<shared_ptr<slim::element>, int>>& vpei);
+
+    pair<string, string> WndClassName(HWND wnd);
+
 private:
     static shared_ptr<platform> _ins;
 

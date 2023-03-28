@@ -60,6 +60,11 @@ struct area
         return abs(right - left) * abs(bottom - top);
     }
 
+    point center() const
+    {
+        return point((left + right) / 2, (top + bottom) / 2);
+    }
+
     bool Inside(point p) const
     {
         return Inside(p.x, p.y);
@@ -101,13 +106,13 @@ struct area
         return x_dis + y_dis;
     }
 
-    double center(point p) const
+    double closeness(point p) const
     {
-        return center(p.x, p.y);
+        return closeness(p.x, p.y);
     }
 
     // [(r-l)-abs(d1-d2)]/(r-l)
-    double center(int x, int y) const
+    double closeness(int x, int y) const
     {
         if (distance(x, y) > 0)
         {

@@ -7,6 +7,7 @@
 
 #include "loop.hpp"
 #include "recorder.hpp"
+#include "runner.hpp"
 
 #ifdef _DEBUG
 #define DX12_ENABLE_DEBUG_LAYER
@@ -116,13 +117,15 @@ int main(int, char**)
         ImGui::NewFrame();
 
         {
+
             slim::SlimLoop();
+
             auto cursor_str = "[" + to_string(GlobalInfo::I()->point.x) + "] - [" + to_string(GlobalInfo::I()->point.y) + "]";
 
             ImGui::Begin("Slim Demo");
 
             ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-            if (ImGui::Button(GlobalInfo::I()->recording ? "Stop Recording" : "Start Recording"))
+            if (ImGui::Button(GlobalInfo::I()->recording ? "Finish Recording" : "Start Recording"))
             {
                 if (GlobalInfo::I()->recording)
                 {
@@ -132,12 +135,23 @@ int main(int, char**)
                     string report = slim::recorder::Report();
                     cout << report;
                 }
-                else
+                else if (!GlobalInfo::I()->running)
                 {
                     slim::recorder::StartRecord();
                     GlobalInfo::I()->recording = true;
                 }
             }
+
+            if (ImGui::Button(GlobalInfo::I()->running ? "Is Running" : "Run"))
+            {
+                if (!GlobalInfo::I()->running)
+                {
+                    string report = slim::recorder::Report();
+                    slim::runner().Run(report);
+                }
+            }
+
+            ImGui::NewLine();
             ImGui::Text(cursor_str.c_str());
             ImGui::NewLine();
 

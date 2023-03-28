@@ -123,10 +123,9 @@ struct action_set
     static action_set FromJson(const json& obj)
     {
         action_set as;
-        auto jArr = obj["actions"];
-        for (int i = 0; i < jArr.size(); ++i)
+        for (int i = 0; i < obj.size(); ++i)
         {
-            as._va.push_back(action::FromJson(jArr[i]));
+            as._va.push_back(action::FromJson(obj[i]));
         }
         return as;
     }
