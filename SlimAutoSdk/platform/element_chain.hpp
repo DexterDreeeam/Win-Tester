@@ -1,15 +1,17 @@
 #pragma once
 
 #include "common.hpp"
-#include "action.hpp"
 
 namespace slim
 {
 
 class element;
+class action;
 
 class element_chain
 {
+    friend class action;
+
 public:
     element_chain() :
         _window(),
@@ -51,6 +53,10 @@ public:
     string Identifier();
 
     string FriendlyIdentifier();
+
+    double Matching(const string& str);
+
+    bool Envoke();
 
     bool test();
 

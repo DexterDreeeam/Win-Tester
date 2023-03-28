@@ -5,7 +5,9 @@
 #include <UIAutomationClient.h>
 
 #include <iostream>
+#include <format>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <map>
 #include <set>

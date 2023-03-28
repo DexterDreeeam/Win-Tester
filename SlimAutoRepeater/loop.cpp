@@ -1,4 +1,5 @@
 #include "loop.hpp"
+#include "recorder.hpp"
 
 namespace slim
 {
@@ -34,7 +35,14 @@ bool SlimLoop()
 
         auto elementChain =  platform::I()->ElementChainByPoint(point(pt));
         GlobalInfo::I()->chain = elementChain;
-        return elementChain ? true : false;
+        if (!elementChain)
+        {
+            return false;
+        }
+
+        recorder::Loop();
+
+        return true;
     }
     catch (...)
     {

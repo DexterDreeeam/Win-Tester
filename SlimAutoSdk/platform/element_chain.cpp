@@ -42,6 +42,16 @@ string element_chain::FriendlyIdentifier()
     return id;
 }
 
+double element_chain::Matching(const string& str)
+{
+    return 0;
+}
+
+bool element_chain::Envoke()
+{
+    return _ve.front()->Envoke();
+}
+
 bool element_chain::test()
 {
     return _ve.front()->test();

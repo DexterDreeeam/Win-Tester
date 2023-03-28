@@ -6,7 +6,7 @@ namespace slim
 
 class recorder
 {
-private:
+public:
     recorder() :
         _mouse_hk(nullptr),
         _key_hk(nullptr),
@@ -14,24 +14,26 @@ private:
     {
     }
 
-public:
     ~recorder();
 
     static void StartRecord()
     {
         if (_ins)
         {
-            delete _ins;
             _ins = nullptr;
         }
-        _ins = new recorder();
+        _ins = make_shared<recorder>();
         _ins->_StartRecord();
     }
 
     static void StopRecord()
     {
-        _ins->StopRecord();
+        _ins->_StopRecord();
     }
+
+    static void Loop();
+
+    static string Report();
 
 private:
     void _StartRecord();
@@ -43,19 +45,17 @@ public:
 
     static LRESULT __stdcall _HookKeyCb(int nCode, WPARAM wParam, LPARAM lParam);
 
-    static DWORD WINAPI _HookThread(LPVOID lpParam);
-
 private:
     void _HookInput();
 
 private:
-    static recorder*  _ins;
+    static shared_ptr<recorder> _ins;
 
     HHOOK             _mouse_hk;
     HHOOK             _key_hk;
-    vector<action>    _actions;
+    action_set        _actions;
 };
 
-__declspec(selectany) recorder* recorder::_ins = nullptr;
+__declspec(selectany) shared_ptr<recorder> recorder::_ins = nullptr;
 
 }

@@ -128,6 +128,9 @@ int main(int, char**)
                 {
                     slim::recorder::StopRecord();
                     GlobalInfo::I()->recording = false;
+
+                    string report = slim::recorder::Report();
+                    cout << report;
                 }
                 else
                 {

@@ -91,6 +91,8 @@ public:
 
     string FriendlyIdentifier();
 
+    bool Envoke();
+
     bool test();
 
 private:

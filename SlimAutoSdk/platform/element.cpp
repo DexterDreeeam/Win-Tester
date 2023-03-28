@@ -140,7 +140,8 @@ string element::Identifier()
     string id = "";
     id += "[" + to_string(SubIdx()) + "]";
     id += "(" + Property("ControlType") + ")";
-    id += "{" + Property("Name") + "}";
+    id += "{{" + Property("Name") + "}}";
+    id += "<<" + Property("AutomationId") + ">>";
     return id;
 }
 
@@ -154,12 +155,13 @@ string element::FriendlyIdentifier()
     string id = "";
     id += "[" + to_string(SubIdx()) + "]";
     id += "(" + Property("LocalizedControlType") + ")";
-    id += "{" + Property("Name") + "}";
+    id += "{{" + Property("Name") + "}}";
+    id += "<<" + Property("AutomationId") + ">>";
     id += " " + Area().stringify();
     return id;
 }
 
-bool element::test()
+bool element::Envoke()
 {
     HRESULT hr;
     IUnknown* pattern;
@@ -178,6 +180,11 @@ bool element::test()
     }
 
     hr = inv->Invoke();
+    return true;
+}
+
+bool element::test()
+{
     return true;
 }
 

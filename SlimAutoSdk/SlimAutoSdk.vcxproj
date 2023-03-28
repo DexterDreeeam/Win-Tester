@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="platform\action.cpp" />
     <ClCompile Include="platform\area.hpp" />
     <ClCompile Include="platform\element.cpp" />
     <ClCompile Include="platform\element_chain.cpp" />
@@ -18,6 +19,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.hpp" />
+    <ClInclude Include="platform\identifier.hpp" />
+    <ClInclude Include="json.hpp" />
     <ClInclude Include="platform\action.hpp" />
     <ClInclude Include="platform\element.hpp" />
     <ClInclude Include="platform\element_chain.hpp" />
@@ -68,6 +71,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -86,6 +90,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>
