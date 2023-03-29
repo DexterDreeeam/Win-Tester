@@ -22,6 +22,9 @@ struct GlobalInfo
     bool recording = false;
     bool running = false;
 
+    bool console_window = false;
+    vector<string> consoles;
+
     slim::point point;
     shared_ptr<slim::element_chain> chain;
 };

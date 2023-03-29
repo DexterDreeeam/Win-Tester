@@ -1,10 +1,7 @@
 #include "loop.hpp"
 #include "recorder.hpp"
 
-namespace slim
-{
-
-void Dbg(shared_ptr<element> root)
+void Dbg(shared_ptr<slim::element> root)
 {
     logger l;
 
@@ -33,14 +30,14 @@ bool SlimLoop()
         POINT pt;
         GetCursorPos(&pt);
 
-        auto elementChain =  platform::I()->ElementChainByPoint(point(pt));
+        auto elementChain = slim::platform::I()->ElementChainByPoint(slim::point(pt));
         GlobalInfo::I()->chain = elementChain;
         if (!elementChain)
         {
             return false;
         }
 
-        recorder::Loop();
+        slim::recorder::Loop();
 
         return true;
     }
@@ -48,6 +45,4 @@ bool SlimLoop()
     {
         return false;
     }
-}
-
 }

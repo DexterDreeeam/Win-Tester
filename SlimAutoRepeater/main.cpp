@@ -6,8 +6,6 @@
 #include <tchar.h>
 
 #include "loop.hpp"
-#include "recorder.hpp"
-#include "runner.hpp"
 
 #ifdef _DEBUG
 #define DX12_ENABLE_DEBUG_LAYER
@@ -51,6 +49,9 @@ void CleanupRenderTarget();
 void WaitForLastSubmittedFrame();
 FrameContext* WaitForNextFrameResources();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+bool SlimLoop();
+bool GuiLoop(ImGuiWindowFlags window_flags);
 
 // Main code
 int WinMain(
@@ -126,62 +127,14 @@ int WinMain(
         if (done)
             break;
 
+        SlimLoop();
+
         // Start the Dear ImGui frame
         ImGui_ImplDX12_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        {
-
-            slim::SlimLoop();
-            auto cursor_str = "[" + to_string(GlobalInfo::I()->point.x) + "] - [" + to_string(GlobalInfo::I()->point.y) + "]";
-            ImGui::SetNextWindowPos(ImVec2(0.f, 0.f));
-            ImGui::SetNextWindowSize(ImVec2(800, 600));
-            ImGui::Begin("Slim Demo", nullptr, window_flags);
-
-            ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-            if (ImGui::Button(
-                    GlobalInfo::I()->recording ? "Finish Recording" : "Start Recording",
-                    ImVec2(200, 25)))
-            {
-                if (GlobalInfo::I()->recording)
-                {
-                    slim::recorder::StopRecord();
-                    GlobalInfo::I()->recording = false;
-
-                    string report = slim::recorder::Report();
-                    cout << report;
-                }
-                else if (!GlobalInfo::I()->running)
-                {
-                    slim::recorder::StartRecord();
-                    GlobalInfo::I()->recording = true;
-                }
-            }
-
-            if (ImGui::Button(
-                    GlobalInfo::I()->running ? "Is Running" : "Run Case",
-                    ImVec2(200, 25)))
-            {
-                if (!GlobalInfo::I()->running)
-                {
-                    string report = slim::recorder::Report();
-                    slim::runner().Run(report);
-                }
-            }
-
-            ImGui::NewLine();
-            ImGui::Text(cursor_str.c_str());
-            ImGui::NewLine();
-
-            auto chain = GlobalInfo::I()->chain;
-            if (chain)
-            {
-                ImGui::Text(GlobalInfo::I()->chain->FriendlyIdentifier().c_str());
-            }
-
-            ImGui::End();
-        }
+        GuiLoop(window_flags);
 
         // Rendering
         ImGui::Render();
