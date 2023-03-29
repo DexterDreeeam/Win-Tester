@@ -6,16 +6,18 @@
 namespace slim
 {
 
-action::action(action_type ty, shared_ptr<element_chain> ec, const string& par) :
+action::action(
+    action_type ty, shared_ptr<element_chain> ec, int wait) :
+    type(ty),
+    parameter(),
     window_name(ec->_window),
     class_name(ec->_class),
-    type(ty),
-    parameter(par),
-    element_stacks()
+    element_stacks(),
+    wait_time_ms(wait)
 {
     for (auto e : ec->_ve)
     {
-        element_stacks.push_back(element_stack::FromString(e->Identifier()));
+        element_stacks.push_back(element_stack(e));
     }
 }
 

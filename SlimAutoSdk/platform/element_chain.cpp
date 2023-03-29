@@ -1,5 +1,6 @@
 #include "element_chain.hpp"
 #include "element.hpp"
+#include "action.hpp"
 
 namespace slim
 {
@@ -42,24 +43,82 @@ string element_chain::FriendlyIdentifier()
     return id;
 }
 
-double element_chain::Matching(const string& str)
+shared_ptr<action> element_chain::Hover()
 {
-    return 0;
+    if (!_ve.front()->Hover())
+    {
+        return nullptr;
+    }
+    auto ac = make_shared<action>();
+    ac->type = action_type::HOVER;
+    ac->class_name = _class;
+    ac->window_name = _window;
+    for (auto e : _ve)
+    {
+        ac->element_stacks.push_back(element_stack(e));
+    }
+    return ac;
 }
 
-bool element_chain::Envoke()
+shared_ptr<action> element_chain::Envoke()
 {
-    return _ve.front()->Envoke();
+    if (!_ve.front()->Envoke())
+    {
+        return nullptr;
+    }
+    auto ac = make_shared<action>();
+    ac->type = action_type::LEFT_CLICK;
+    ac->class_name = _class;
+    ac->window_name = _window;
+    for (auto e : _ve)
+    {
+        ac->element_stacks.push_back(element_stack(e));
+    }
+    return ac;
 }
 
-bool element_chain::Menu()
+shared_ptr<action> element_chain::Menu()
 {
-    return _ve.front()->Menu();
+    if (!_ve.front()->Menu())
+    {
+        return nullptr;
+    }
+    auto ac = make_shared<action>();
+    ac->type = action_type::RIGHT_CLICK;
+    ac->class_name = _class;
+    ac->window_name = _window;
+    for (auto e : _ve)
+    {
+        ac->element_stacks.push_back(element_stack(e));
+    }
+    return ac;
 }
 
-bool element_chain::Test()
+shared_ptr<action> element_chain::Input(char k)
 {
-    return _ve.front()->Test();
+    auto ac = make_shared<action>();
+    ac->type = action_type::KEY_INPUT;
+    ac->class_name = _class;
+    ac->window_name = _window;
+    ac->AddParameter("keys", string({ k }));
+    return ac;
+}
+
+shared_ptr<action> element_chain::Test()
+{
+    if (!_ve.front()->Test())
+    {
+        return nullptr;
+    }
+    auto ac = make_shared<action>();
+    ac->type = action_type::ACTION_TEST;
+    ac->class_name = _class;
+    ac->window_name = _window;
+    for (auto e : _ve)
+    {
+        ac->element_stacks.push_back(element_stack(e));
+    }
+    return ac;
 }
 
 }

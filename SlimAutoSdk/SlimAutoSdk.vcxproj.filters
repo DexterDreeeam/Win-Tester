@@ -6,6 +6,7 @@
     <ClCompile Include="platform\area.hpp" />
     <ClCompile Include="platform\element_chain.cpp" />
     <ClCompile Include="platform\action.cpp" />
+    <ClCompile Include="platform\identifier.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.hpp" />
@@ -18,5 +19,6 @@
     <ClInclude Include="platform\action.hpp" />
     <ClInclude Include="json.hpp" />
     <ClInclude Include="platform\identifier.hpp" />
+    <ClInclude Include="platform\failure.hpp" />
   </ItemGroup>
 </Project>

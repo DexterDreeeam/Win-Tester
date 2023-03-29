@@ -20,14 +20,18 @@ public:
 
     bool Run(const string& str);
 
-    bool Run(const action& ac);
+    bool Act(shared_ptr<action> ac);
+
+    bool ActElement(shared_ptr<action> ac);
 
 private:
-    vector<HWND> _FilterWindow(const action& ac);
+    vector<HWND> _FilterWindow(shared_ptr<action> ac);
 
     static BOOL CALLBACK _EnumWindowsCb(HWND hWnd, LPARAM lParam);
 
-    static bool _IsTargetWindow(HWND wnd, const action& ac);
+    static bool _IsTargetWindow(HWND wnd, shared_ptr<action> ac);
+
+    static bool _KeyInput(char c);
 };
 
 }

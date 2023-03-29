@@ -209,30 +209,65 @@ void element::Matching(
     }
 }
 
+bool element::Act(action_type actionType)
+{
+    switch (actionType)
+    {
+    case action_type::ACTION_TEST:
+        return Test();
+
+    case action_type::HOVER:
+        return Hover();
+
+    case action_type::LEFT_CLICK:
+        return Envoke();
+
+    case action_type::RIGHT_CLICK:
+        return Menu();
+
+    default:
+        return false;
+    }
+}
+
+bool element::Hover()
+{
+    int x = Area().center().x;
+    int y = Area().center().y;
+    if (!SetCursorPos(x, y))
+    {
+        return false;
+    }
+    Sleep(500);
+    return true;
+}
+
 bool element::Envoke()
 {
-    HRESULT hr;
-    IUnknown* pattern;
-    hr = _elm->GetCurrentPattern(UIA_InvokePatternId, &pattern);
-    Tell("_elm->GetCurrentPattern(UIA_InvokePatternId, &pattern) failed");
-    if (FAILED(hr) || !pattern)
-    {
-        return Envoke_();
-    }
+    // always use physical button
+    return Envoke_();
+    //HRESULT hr;
+    //IUnknown* pattern;
+    //hr = _elm->GetCurrentPattern(UIA_InvokePatternId, &pattern);
+    //Tell("_elm->GetCurrentPattern(UIA_InvokePatternId, &pattern) failed");
+    //if (FAILED(hr) || !pattern)
+    //{
+    //    return Envoke_();
+    //}
 
-    IUIAutomationInvokePattern* inv;
-    hr = pattern->QueryInterface(&inv);
-    if (FAILED(hr) || !inv)
-    {
-        return Envoke_();
-    }
+    //IUIAutomationInvokePattern* inv;
+    //hr = pattern->QueryInterface(&inv);
+    //if (FAILED(hr) || !inv)
+    //{
+    //    return Envoke_();
+    //}
 
-    hr = inv->Invoke();
-    if (FAILED(hr))
-    {
-        return Envoke_();
-    }
-    return true;
+    //hr = inv->Invoke();
+    //if (FAILED(hr))
+    //{
+    //    return Envoke_();
+    //}
+    //return true;
 }
 
 bool element::Envoke2()
@@ -269,10 +304,26 @@ bool element::Envoke_()
     {
         return false;
     }
+
+    INPUT input = {};
+    input.type = INPUT_MOUSE;
+    input.mi.dx = x;
+    input.mi.dy = y;
+
     Sleep(10);
-    mouse_event(MOUSEEVENTF_LEFTDOWN, x, y, 0, NULL);
+    input.mi.dwFlags = MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_ABSOLUTE;
+    if (SendInput(1, &input, sizeof(INPUT)) == 0)
+    {
+        return false;
+    }
+
     Sleep(10);
-    mouse_event(MOUSEEVENTF_LEFTUP, x, y, 0, NULL);
+    input.mi.dwFlags = MOUSEEVENTF_LEFTUP | MOUSEEVENTF_ABSOLUTE;
+    if (SendInput(1, &input, sizeof(INPUT)) == 0)
+    {
+        return false;
+    }
+
     return true;
 }
 
@@ -284,10 +335,26 @@ bool element::Menu()
     {
         return false;
     }
+
+    INPUT input = {};
+    input.type = INPUT_MOUSE;
+    input.mi.dx = x;
+    input.mi.dy = y;
+
     Sleep(10);
-    mouse_event(MOUSEEVENTF_RIGHTDOWN, x, y, 0, NULL);
+    input.mi.dwFlags = MOUSEEVENTF_RIGHTDOWN | MOUSEEVENTF_ABSOLUTE;
+    if (SendInput(1, &input, sizeof(INPUT)) == 0)
+    {
+        return false;
+    }
+
     Sleep(10);
-    mouse_event(MOUSEEVENTF_RIGHTUP, x, y, 0, NULL);
+    input.mi.dwFlags = MOUSEEVENTF_RIGHTUP | MOUSEEVENTF_ABSOLUTE;
+    if (SendInput(1, &input, sizeof(INPUT)) == 0)
+    {
+        return false;
+    }
+
     return true;
 }
 

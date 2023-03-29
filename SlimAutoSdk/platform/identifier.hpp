@@ -12,6 +12,14 @@ enum action_type
 {
     ACTION_NONE,
 
+    ACTION_TEST,
+
+    // parameter required
+    APP_LAUNCH,
+
+    // elemnt_id required
+    HOVER,
+
     // elemnt_id required
     LEFT_CLICK,
 
@@ -20,19 +28,20 @@ enum action_type
 
     // parameter required
     KEY_INPUT,
-
-    // parameter required
-    WINDOW_SWITCH,
 };
 
 static vector<pair<action_type, string>> action_string_dict =
 {
-    { ACTION_NONE,   "ACTION_NONE" },
-    { LEFT_CLICK,    "LEFT_CLICK" },
-    { RIGHT_CLICK,   "RIGHT_CLICK" },
-    { KEY_INPUT,     "KEY_INPUT" },
-    { WINDOW_SWITCH, "WINDOW_SWITCH" },
+    { action_type::ACTION_NONE,   "ACTION_NONE" },
+    { action_type::ACTION_TEST,   "ACTION_TEST" },
+    { action_type::APP_LAUNCH,    "APP_LAUNCH" },
+    { action_type::HOVER,         "HOVER" },
+    { action_type::LEFT_CLICK,    "LEFT_CLICK" },
+    { action_type::RIGHT_CLICK,   "RIGHT_CLICK" },
+    { action_type::KEY_INPUT,     "KEY_INPUT" },
 };
+
+class element;
 
 struct element_stack
 {
@@ -40,6 +49,16 @@ struct element_stack
     int control_type;
     string element_name;
     string automation_id;
+
+    element_stack() :
+        sub_index(),
+        control_type(),
+        element_name(),
+        automation_id()
+    {
+    }
+
+    element_stack(shared_ptr<element> e);
 
     string ToString() const
     {

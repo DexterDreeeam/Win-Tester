@@ -96,6 +96,10 @@ public:
         const vector<element_stack>& es, int es_end, shared_ptr<element> self,
         double score, vector<pair<shared_ptr<element>, double>>& rst);
 
+    bool Act(action_type actionType);
+
+    bool Hover();
+
     bool Envoke();
 
     bool Envoke2();

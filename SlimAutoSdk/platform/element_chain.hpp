@@ -54,13 +54,15 @@ public:
 
     string FriendlyIdentifier();
 
-    double Matching(const string& str);
+    shared_ptr<action> Hover(); // cursor hover
 
-    bool Envoke(); // left click
+    shared_ptr<action> Envoke(); // cursor left click
 
-    bool Menu(); // right click
+    shared_ptr<action> Menu(); // cursor right click
 
-    bool Test();
+    shared_ptr<action> Input(char k); // input a Key down
+
+    shared_ptr<action> Test();
 
 private:
     string                       _window;

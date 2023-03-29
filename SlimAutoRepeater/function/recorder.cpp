@@ -22,42 +22,57 @@ void recorder::Loop()
         return;
     }
 
-    action ac = {};
-
-    if (GetAsyncKeyState(VK_RSHIFT))
+    if (!GlobalInfo::I()->recording)
     {
-        ac = action(action_type::LEFT_CLICK, chain);
-        chain->Envoke();
-        Sleep(500);
+        return;
     }
-    else if (GetAsyncKeyState(VK_RCONTROL))
+
+    shared_ptr<action> ac = nullptr;
+    if (GetAsyncKeyState(VK_RCONTROL))
     {
-        ac = action(action_type::RIGHT_CLICK, chain);
-        chain->Menu();
-        Sleep(500);
+        ac = chain->Hover();
+    }
+    else if (GetAsyncKeyState(VK_RSHIFT))
+    {
+        ac = chain->Envoke();
+    }
+    else if (GetAsyncKeyState(VK_RMENU))
+    {
+        ac = chain->Menu();
     }
     else if (GetAsyncKeyState(VK_F10))
     {
-        ac = action(action_type::ACTION_NONE, chain);
-        chain->Test();
-        Sleep(500);
+        ac = chain->Test();
+    }
+    else
+    {
+        for (char c : InputKeys)
+        {
+            if (GetAsyncKeyState(c))
+            {
+                ac = chain->Input(c);
+                break;
+            }
+        }
     }
 
-    if (ac.type != action_type::ACTION_NONE)
+    if (ac && ac->type != action_type::ACTION_NONE && ac->type != action_type::ACTION_TEST)
     {
         me->_actions.Add(ac);
+        Sleep(300);
     }
 }
 
 string recorder::Report()
 {
-    string default_r = "{\"actions\": []}";
+    string default_r = "[]";
     if (!_ins)
     {
         return default_r;
     }
 
-    return _ins->_actions.ToString();
+    _ins->_actions.Sort();
+    return _ins->_actions.ToString(true);
 }
 
 void recorder::_StartRecord()
@@ -134,7 +149,7 @@ LRESULT __stdcall recorder::_HookKeyCb(int nCode, WPARAM wParam, LPARAM lParam)
 
         if (ac.type != action_type::ACTION_NONE)
         {
-            me->_actions.Add(ac);
+            // me->_actions.Add(ac);
         }
     }
 

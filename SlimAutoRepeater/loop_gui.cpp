@@ -6,8 +6,8 @@
 #include <tchar.h>
 
 #include "loop.hpp"
-#include "recorder.hpp"
-#include "runner.hpp"
+#include "function/recorder.hpp"
+#include "function/runner.hpp"
 
 bool GuiLoop(ImGuiWindowFlags window_flags, bool& done)
 {
@@ -25,7 +25,7 @@ bool GuiLoop(ImGuiWindowFlags window_flags, bool& done)
     ImGui::Text("%.1f FPS", io.Framerate);
     if (ImGui::Button(
         GlobalInfo::I()->recording ? "Finish Recording" : "Start Recording",
-        ImVec2(320, 25)))
+        ImVec2(300, 25)))
     {
         if (GlobalInfo::I()->recording)
         {
@@ -33,7 +33,7 @@ bool GuiLoop(ImGuiWindowFlags window_flags, bool& done)
             GlobalInfo::I()->recording = false;
 
             string report = slim::recorder::Report();
-            cout << report;
+            slim::platform::I()->Console(report);
         }
         else if (!GlobalInfo::I()->running)
         {
@@ -42,9 +42,11 @@ bool GuiLoop(ImGuiWindowFlags window_flags, bool& done)
         }
     }
 
+    ImGui::SameLine();
+
     if (ImGui::Button(
         GlobalInfo::I()->running ? "Is Running" : "Run Case",
-        ImVec2(320, 25)))
+        ImVec2(300, 25)))
     {
         if (!GlobalInfo::I()->running)
         {
@@ -53,20 +55,27 @@ bool GuiLoop(ImGuiWindowFlags window_flags, bool& done)
         }
     }
 
-    bool oldConsole = GlobalInfo::I()->console_window;
-    if (ImGui::Button("Exit", ImVec2(120, 25)))
+    if (ImGui::Button(
+        GlobalInfo::I()->console_window ? "Show DOM" : "Show Console",
+        ImVec2(300, 25)))
+    {
+        GlobalInfo::I()->console_window = !GlobalInfo::I()->console_window;
+        if (!GlobalInfo::I()->console_window)
+        {
+            GlobalInfo::I()->ClearConsole();
+        }
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Exit", ImVec2(300, 25)))
     {
         done = true;
     }
-    ImGui::SameLine();
-    ImGui::Checkbox("Console", &GlobalInfo::I()->console_window);
-    ImGui::NewLine();
 
     if (GlobalInfo::I()->console_window)
     {
-        // console
-        ImGui::SetNextWindowScroll(ImVec2(600, 360));
-        ImGui::BeginChild("Slim Console");
+        ImGui::BeginChild("Console", ImVec2(620, 500));
         for (auto& c : GlobalInfo::I()->Consoles())
         {
             ImGui::Text(c.c_str());
@@ -75,10 +84,6 @@ bool GuiLoop(ImGuiWindowFlags window_flags, bool& done)
     }
     else
     {
-        if (oldConsole)
-        {
-            GlobalInfo::I()->ClearConsole();  // clear when close console
-        }
         auto chain = GlobalInfo::I()->chain;
         if (chain)
         {

@@ -64,7 +64,9 @@ int WinMain(
     //ImGui_ImplWin32_EnableDpiAwareness();
     WNDCLASSEXW wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, L"SlimWinClass", NULL };
     ::RegisterClassExW(&wc);
-    HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Slim-Auto Demo", WS_OVERLAPPED & (~WS_THICKFRAME), 100, 100, 640, 640, NULL, NULL, wc.hInstance, NULL);
+    HWND hwnd = ::CreateWindowW(
+        wc.lpszClassName, L"Slim-Auto", WS_OVERLAPPED,
+        100, 100, 640, 640, NULL, NULL, wc.hInstance, NULL);
 
     // Initialize Direct3D
     if (!CreateDeviceD3D(hwnd))

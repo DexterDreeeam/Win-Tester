@@ -15,10 +15,12 @@
     <ClCompile Include="platform\area.hpp" />
     <ClCompile Include="platform\element.cpp" />
     <ClCompile Include="platform\element_chain.cpp" />
+    <ClCompile Include="platform\identifier.cpp" />
     <ClCompile Include="platform\platform.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.hpp" />
+    <ClInclude Include="platform\failure.hpp" />
     <ClInclude Include="platform\identifier.hpp" />
     <ClInclude Include="json.hpp" />
     <ClInclude Include="platform\action.hpp" />

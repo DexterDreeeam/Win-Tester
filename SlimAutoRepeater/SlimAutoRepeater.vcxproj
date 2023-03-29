@@ -50,7 +50,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)SlimAutoSdk\;$(ProjectDir)imgui\backends\;$(ProjectDir)imgui\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)SlimAutoSdk\;$(ProjectDir);$(ProjectDir)imgui\backends\;$(ProjectDir)imgui\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -69,7 +69,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)SlimAutoSdk\;$(ProjectDir)imgui\backends\;$(ProjectDir)imgui\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)SlimAutoSdk\;$(ProjectDir);$(ProjectDir)imgui\backends\;$(ProjectDir)imgui\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -92,8 +92,8 @@
     <ClCompile Include="loop_gui.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="loop.cpp" />
-    <ClCompile Include="recorder.cpp" />
-    <ClCompile Include="runner.cpp" />
+    <ClCompile Include="function\recorder.cpp" />
+    <ClCompile Include="function\runner.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\backends\imgui_impl_dx12.h" />
@@ -105,8 +105,8 @@
     <ClInclude Include="imgui\imstb_textedit.h" />
     <ClInclude Include="imgui\imstb_truetype.h" />
     <ClInclude Include="loop.hpp" />
-    <ClInclude Include="recorder.hpp" />
-    <ClInclude Include="runner.hpp" />
+    <ClInclude Include="function\recorder.hpp" />
+    <ClInclude Include="function\runner.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

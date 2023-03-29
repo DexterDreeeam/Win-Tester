@@ -14,22 +14,34 @@ class element_chain;
 class action
 {
 public:
+    action_type type;
+    map<string, string> parameter;
     string window_name;
     string class_name;
-    action_type type;
-    string parameter;
     vector<element_stack> element_stacks;
+    int wait_time_ms;
 
     action() :
-        window_name(),
-        class_name(),
         type(action_type::ACTION_NONE),
         parameter(),
-        element_stacks()
+        window_name(),
+        class_name(),
+        element_stacks(),
+        wait_time_ms(1000)
     {
     }
 
-    action(action_type ty, shared_ptr<element_chain> ec, const string& par = "");
+    action(action_type ty, shared_ptr<element_chain> ec, int wait = 1000);
+
+    void AddParameter(const string& key, const string& val)
+    {
+        parameter[key] = val;
+    }
+
+    void SetTimeMs(int ms)
+    {
+        wait_time_ms = ms;
+    }
 
     static string TypeToString(action_type t)
     {
@@ -73,24 +85,24 @@ public:
         return j;
     }
 
-    static action FromJson(const json& j)
+    static shared_ptr<action> FromJson(const json& j)
     {
-        action ac;
-        ac.window_name = j["window_name"];
-        ac.class_name = j["class_name"];
-        ac.type = StringToType(j["action_type"]);
-        ac.parameter = j["parameter"];
+        auto ac = make_shared<action>();
+        ac->window_name = j["window_name"];
+        ac->class_name = j["class_name"];
+        ac->type = StringToType(j["action_type"]);
+        ac->parameter = j["parameter"];
 
         auto es = j["element_stacks"];
         for (int i = 0; i < es.size(); ++i)
         {
-            ac.element_stacks.push_back(element_stack::FromString(es[i]));
+            ac->element_stacks.push_back(element_stack::FromString(es[i]));
         }
 
         return ac;
     }
 
-    static action FromString(const string& str)
+    static shared_ptr<action> FromString(const string& str)
     {
         return FromJson(json::parse(str));
     }
@@ -98,24 +110,43 @@ public:
 
 struct action_set
 {
-    vector<action> _va;
+    vector<shared_ptr<action>> _va;
 
-    void Add(const action& ac)
+    void Add(shared_ptr<action> ac)
     {
         _va.push_back(ac);
     }
 
-    string ToString() const
+    void Sort()
     {
-        return ToJson().dump();
+        vector<shared_ptr<action>> va;
+        bool last_is_input = false;
+        for (auto ac : _va)
+        {
+            if (last_is_input && ac->type == action_type::KEY_INPUT)
+            {
+                va.back()->parameter["keys"] += ac->parameter["keys"];
+            }
+            else
+            {
+                va.push_back(ac);
+                last_is_input = ac->type == action_type::KEY_INPUT;
+            }
+        }
+        _va = va;
+    }
+
+    string ToString(bool indent) const
+    {
+        return ToJson().dump(indent ? 2 : -1);
     }
 
     json ToJson() const
     {
         auto jArr = json::array();
-        for (const auto& ac : _va)
+        for (auto ac : _va)
         {
-            jArr.push_back(ac.ToJson());
+            jArr.push_back(ac->ToJson());
         }
         return jArr;
     }
