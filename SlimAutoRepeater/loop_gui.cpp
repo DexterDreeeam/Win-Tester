@@ -49,21 +49,8 @@ bool GuiLoop(ImGuiWindowFlags window_flags)
         }
     }
 
-    if (ImGui::Checkbox("Console", &GlobalInfo::I()->console_window))
-    {
-        if (!GlobalInfo::I()->console_window)
-        {
-            GlobalInfo::I()->console_window = true;
-        }
-    }
-    else
-    {
-        if (GlobalInfo::I()->console_window)
-        {
-            GlobalInfo::I()->consoles.clear();
-            GlobalInfo::I()->console_window = false;
-        }
-    }
+    bool oldConsole = GlobalInfo::I()->console_window;
+    ImGui::Checkbox("Console", &GlobalInfo::I()->console_window);
 
     ImGui::NewLine();
     ImGui::Text(cursor_str.c_str());
@@ -76,6 +63,12 @@ bool GuiLoop(ImGuiWindowFlags window_flags)
     }
 
     ImGui::End();
+
+    if (oldConsole && !GlobalInfo::I()->console_window)
+    {
+        // close console
+        GlobalInfo::I()->consoles.clear();
+    }
 
     if (GlobalInfo::I()->console_window)
     {
