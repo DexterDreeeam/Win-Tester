@@ -19,11 +19,20 @@ struct GlobalInfo
         chain = make_shared<slim::element_chain>();
     }
 
+    static const vector<string>& Consoles()
+    {
+        return slim::platform::I()->Consoles();
+    }
+
+    static void ClearConsole()
+    {
+        slim::platform::I()->ClearConsole();
+    }
+
     bool recording = false;
     bool running = false;
 
     bool console_window = false;
-    vector<string> consoles;
 
     slim::point point;
     shared_ptr<slim::element_chain> chain;

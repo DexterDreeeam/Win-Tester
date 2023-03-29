@@ -100,11 +100,11 @@ public:
 
     bool Envoke2();
 
-    bool Envoke3();
+    bool Envoke_();
 
     bool Menu();
 
-    bool test();
+    bool Test();
 
 private:
     shared_ptr<platform>         _plt;

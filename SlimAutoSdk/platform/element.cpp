@@ -217,40 +217,25 @@ bool element::Envoke()
     Tell("_elm->GetCurrentPattern(UIA_InvokePatternId, &pattern) failed");
     if (FAILED(hr) || !pattern)
     {
-        return Envoke2();
+        return Envoke_();
     }
 
     IUIAutomationInvokePattern* inv;
     hr = pattern->QueryInterface(&inv);
     if (FAILED(hr) || !inv)
     {
-        return Envoke2();
+        return Envoke_();
     }
 
     hr = inv->Invoke();
     if (FAILED(hr))
     {
-        return Envoke2();
+        return Envoke_();
     }
     return true;
 }
 
 bool element::Envoke2()
-{
-    int x = Area().center().x;
-    int y = Area().center().y;
-    if (!SetCursorPos(x, y))
-    {
-        return false;
-    }
-    Sleep(10);
-    mouse_event(MOUSEEVENTF_LEFTDOWN, x, y, 0, NULL);
-    Sleep(10);
-    mouse_event(MOUSEEVENTF_LEFTUP, x, y, 0, NULL);
-    return true;
-}
-
-bool element::Envoke3()
 {
     HRESULT hr;
     IUnknown* pattern;
@@ -268,11 +253,26 @@ bool element::Envoke3()
         return false;
     }
 
-    hr = inv->DoDefaultAction();
+    inv->DoDefaultAction();
     if (FAILED(hr))
     {
         return false;
     }
+    return true;
+}
+
+bool element::Envoke_()
+{
+    int x = Area().center().x;
+    int y = Area().center().y;
+    if (!SetCursorPos(x, y))
+    {
+        return false;
+    }
+    Sleep(10);
+    mouse_event(MOUSEEVENTF_LEFTDOWN, x, y, 0, NULL);
+    Sleep(10);
+    mouse_event(MOUSEEVENTF_LEFTUP, x, y, 0, NULL);
     return true;
 }
 
@@ -291,8 +291,19 @@ bool element::Menu()
     return true;
 }
 
-bool element::test()
+bool element::Test()
 {
+    HRESULT hr;
+    IUnknown* pattern;
+    for (int i = UIA_InvokePatternId; i < UIA_InvokePatternId + 50; ++i)
+    {
+        hr = _elm->GetCurrentPattern(i, &pattern);
+        if (SUCCEEDED(hr) && pattern)
+        {
+            platform::I()->Console(format("{} Control Pattern is supported", i));
+        }
+    }
+
     return true;
 }
 

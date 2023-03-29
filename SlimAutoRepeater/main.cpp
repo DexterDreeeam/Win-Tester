@@ -51,7 +51,7 @@ FrameContext* WaitForNextFrameResources();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 bool SlimLoop();
-bool GuiLoop(ImGuiWindowFlags window_flags);
+bool GuiLoop(ImGuiWindowFlags window_flags, bool& done);
 
 // Main code
 int WinMain(
@@ -64,7 +64,7 @@ int WinMain(
     //ImGui_ImplWin32_EnableDpiAwareness();
     WNDCLASSEXW wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, L"SlimWinClass", NULL };
     ::RegisterClassExW(&wc);
-    HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Slim-Auto Demo", WS_OVERLAPPEDWINDOW, 100, 100, 640, 480, NULL, NULL, wc.hInstance, NULL);
+    HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Slim-Auto Demo", WS_OVERLAPPED & (~WS_THICKFRAME), 100, 100, 640, 640, NULL, NULL, wc.hInstance, NULL);
 
     // Initialize Direct3D
     if (!CreateDeviceD3D(hwnd))
@@ -134,7 +134,7 @@ int WinMain(
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        GuiLoop(window_flags);
+        GuiLoop(window_flags, done);
 
         // Rendering
         ImGui::Render();

@@ -57,9 +57,9 @@ bool element_chain::Menu()
     return _ve.front()->Menu();
 }
 
-bool element_chain::test()
+bool element_chain::Test()
 {
-    return _ve.front()->test();
+    return _ve.front()->Test();
 }
 
 }

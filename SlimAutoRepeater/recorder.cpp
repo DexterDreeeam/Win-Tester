@@ -36,6 +36,12 @@ void recorder::Loop()
         chain->Menu();
         Sleep(500);
     }
+    else if (GetAsyncKeyState(VK_F10))
+    {
+        ac = action(action_type::ACTION_NONE, chain);
+        chain->Test();
+        Sleep(500);
+    }
 
     if (ac.type != action_type::ACTION_NONE)
     {

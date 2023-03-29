@@ -60,7 +60,7 @@ public:
 
     bool Menu(); // right click
 
-    bool test();
+    bool Test();
 
 private:
     string                       _window;

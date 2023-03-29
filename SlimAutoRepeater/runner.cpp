@@ -22,16 +22,16 @@ bool runner::Run(const string& str)
 
 bool runner::Run(const action& ac)
 {
+    HWND best_wnd = nullptr;
+    shared_ptr<element> best_elm;
+    double best_score = 0.1;
+
     auto wnds = _FilterWindow(ac);
     for (auto wnd : wnds)
     {
         auto root = platform::I()->Diagram(wnd);
         vector<pair<shared_ptr<element>, double>> ranks;
-        for (int i = 0; i < root->SubCount(); ++i)
-        {
-            auto s = root->Sub(i);
-            s->Matching(ac.element_stacks, ac.element_stacks.size() - 2, s, 0, ranks);
-        }
+        root->Matching(ac.element_stacks, (int)ac.element_stacks.size() - 1, root, 0, ranks);
 
         double score_max = -1.0;
         int idx_max = -1;
@@ -43,29 +43,35 @@ bool runner::Run(const action& ac)
                 idx_max = i;
             }
         }
-        if (idx_max == -1)
+        if (score_max > best_score)
         {
-            continue;
+            best_wnd = wnd;
+            best_elm = ranks[idx_max].first;
+            best_score = score_max;
         }
+    }
 
-        if (GetForegroundWindow() != wnd && !SetForegroundWindow(wnd))
-        {
-            continue;
-        }
-        Sleep(200);
+    if (!best_wnd)
+    {
+        return false;
+    }
 
-        auto elm = ranks[idx_max].first; // found correct element
-        switch (ac.type)
-        {
-        case action_type::LEFT_CLICK:
-            return elm->Envoke();
+    if (GetForegroundWindow() != best_wnd && !SetForegroundWindow(best_wnd))
+    {
+        return false;
+    }
+    Sleep(200);
 
-        case action_type::RIGHT_CLICK:
-            return elm->Menu();
+    switch (ac.type)
+    {
+    case action_type::LEFT_CLICK:
+        return best_elm->Envoke();
 
-        default:
-            break;
-        }
+    case action_type::RIGHT_CLICK:
+        return best_elm->Menu();
+
+    default:
+        break;
     }
 
     return false;
