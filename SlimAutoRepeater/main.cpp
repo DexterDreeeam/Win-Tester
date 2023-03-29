@@ -53,7 +53,11 @@ FrameContext* WaitForNextFrameResources();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // Main code
-int main(int, char**)
+int WinMain(
+    HINSTANCE hInstance,
+    HINSTANCE hPrevInstance,
+    LPSTR     lpCmdLine,
+    int       nShowCmd)
 {
     // Create application window
     //ImGui_ImplWin32_EnableDpiAwareness();
@@ -92,7 +96,18 @@ int main(int, char**)
         g_pd3dSrvDescHeap->GetGPUDescriptorHandleForHeapStart());
 
     // Our state
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 0.00f);
+    ImGuiWindowFlags window_flags = 0;
+    window_flags |= ImGuiWindowFlags_NoTitleBar;
+    window_flags |= ImGuiWindowFlags_NoScrollbar;
+    // window_flags |= ImGuiWindowFlags_MenuBar;
+    window_flags |= ImGuiWindowFlags_NoMove;
+    window_flags |= ImGuiWindowFlags_NoResize;
+    window_flags |= ImGuiWindowFlags_NoCollapse;
+    window_flags |= ImGuiWindowFlags_NoNav;
+    window_flags |= ImGuiWindowFlags_NoBackground;
+    window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
+    window_flags |= ImGuiWindowFlags_UnsavedDocument;
 
     // Main loop
     bool done = false;
@@ -119,13 +134,15 @@ int main(int, char**)
         {
 
             slim::SlimLoop();
-
             auto cursor_str = "[" + to_string(GlobalInfo::I()->point.x) + "] - [" + to_string(GlobalInfo::I()->point.y) + "]";
-
-            ImGui::Begin("Slim Demo");
+            ImGui::SetNextWindowPos(ImVec2(0.f, 0.f));
+            ImGui::SetNextWindowSize(ImVec2(800, 600));
+            ImGui::Begin("Slim Demo", nullptr, window_flags);
 
             ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-            if (ImGui::Button(GlobalInfo::I()->recording ? "Finish Recording" : "Start Recording"))
+            if (ImGui::Button(
+                    GlobalInfo::I()->recording ? "Finish Recording" : "Start Recording",
+                    ImVec2(200, 25)))
             {
                 if (GlobalInfo::I()->recording)
                 {
@@ -142,7 +159,9 @@ int main(int, char**)
                 }
             }
 
-            if (ImGui::Button(GlobalInfo::I()->running ? "Is Running" : "Run"))
+            if (ImGui::Button(
+                    GlobalInfo::I()->running ? "Is Running" : "Run Case",
+                    ImVec2(200, 25)))
             {
                 if (!GlobalInfo::I()->running)
                 {
