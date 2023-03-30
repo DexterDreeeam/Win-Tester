@@ -23,8 +23,17 @@ bool GuiLoop(ImGuiWindowFlags window_flags, bool& done)
         ImGui::SameLine();
     }
     ImGui::Text("%.1f FPS", io.Framerate);
+
+    /*
+     *    Record Button
+     */
+    bool is_recording = GlobalInfo::I()->recording;
+    if (is_recording)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.3f, 0.1f, 1.0f));
+    }
     if (ImGui::Button(
-        GlobalInfo::I()->recording ? "Finish Recording" : "Start Recording",
+        GlobalInfo::I()->recording ? "End Recording" : "Record Cases",
         ImVec2(300, 25)))
     {
         if (GlobalInfo::I()->recording)
@@ -41,18 +50,31 @@ bool GuiLoop(ImGuiWindowFlags window_flags, bool& done)
             GlobalInfo::I()->recording = true;
         }
     }
+    if (is_recording)
+    {
+        ImGui::PopStyleColor(1);
+    }
 
     ImGui::SameLine();
 
+    /*
+     *    Run Button
+     */
+    bool is_running = GlobalInfo::I()->running;
+    if (is_running)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.3f, 0.1f, 1.0f));
+    }
     if (ImGui::Button(
-        GlobalInfo::I()->running ? "Is Running" : "Run Case",
+        GlobalInfo::I()->running ? "Running" : "Run Cases",
         ImVec2(300, 25)))
     {
-        if (!GlobalInfo::I()->running)
-        {
-            string report = slim::recorder::Report();
-            slim::runner().Run(report);
-        }
+        string report = slim::recorder::Report();
+        slim::runner().Run(report);
+    }
+    if (is_running)
+    {
+        ImGui::PopStyleColor(1);
     }
 
     if (ImGui::Button(
@@ -87,7 +109,7 @@ bool GuiLoop(ImGuiWindowFlags window_flags, bool& done)
         auto chain = GlobalInfo::I()->chain;
         if (chain)
         {
-            ImGui::Text(GlobalInfo::I()->chain->FriendlyIdentifier().c_str());
+            ImGui::Text(chain->FriendlyIdentifier().c_str());
         }
     }
 

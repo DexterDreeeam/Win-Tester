@@ -38,11 +38,28 @@ bool SlimLoop()
         }
 
         slim::recorder::Loop();
-
         return true;
     }
-    catch (...)
+    catch (std::exception& e)
     {
+        e;
         return false;
     }
+    catch (const string& e)
+    {
+        e;
+        return false;
+    }
+}
+
+void SlimLoopStart()
+{
+    static std::thread loop;
+    loop = std::thread([]() {
+        CoInitialize(NULL);
+        while (1)
+        {
+            SlimLoop();
+        }
+    });
 }

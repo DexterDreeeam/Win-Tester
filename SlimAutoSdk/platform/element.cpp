@@ -5,8 +5,8 @@
 namespace slim
 {
 
-element::element(shared_ptr<platform> p, int sub_idx, int depth, IUIAutomationElement* e) :
-    _plt(p),
+element::element(IUIAutomationCondition* con, int sub_idx, int depth, IUIAutomationElement* e) :
+    _con(con),
     _sub_idx(sub_idx),
     _depth(depth),
     _elm(e),
@@ -25,6 +25,31 @@ element::element(shared_ptr<platform> p, int sub_idx, int depth, IUIAutomationEl
     _area = area(rc);
 }
 
+element::element(IUIAutomationCondition* con, IUIAutomationElement* e) :
+    _con(con),
+    _sub_idx(-1),
+    _depth(-1),
+    _elm(e),
+    _subs(),
+    _area(),
+    _property(),
+    _property_loaded(false),
+    _interact(false)
+{
+    HRESULT hr;
+    RECT rc;
+
+    hr = _elm->get_CurrentBoundingRectangle(&rc);
+    Tell("elm->get_CurrentBoundingRectangle failed");
+
+    _area = area(rc);
+}
+
+list<shared_ptr<element>> element::GenerateStacks(IUIAutomationCondition* con, point p)
+{
+    auto elm = make_shared<element>(con);
+}
+
 bool element::LoadSub(int depth, int depth_remain)
 {
     if (Invalid())
@@ -35,7 +60,7 @@ bool element::LoadSub(int depth, int depth_remain)
     HRESULT hr;
     IUIAutomationElementArray* elmArr;
 
-    hr = _elm->FindAll(TreeScope_Children, _plt->_con, &elmArr);
+    hr = _elm->FindAll(TreeScope_Children, _con, &elmArr);
     Tell("FindAll() failed when LoadSub()");
 
     int len = 0;
@@ -47,7 +72,7 @@ bool element::LoadSub(int depth, int depth_remain)
         IUIAutomationElement* c;
         hr = elmArr->GetElement(i, &c);
         Tell("elmArr->GetElement failed");
-        _subs.push_back(make_shared<element>(_plt, i, depth, c));
+        _subs.push_back(make_shared<element>(_con, i, depth, c));
         if (depth_remain == 0)
         {
             continue;
@@ -73,14 +98,21 @@ bool element::LoadProperty()
     BSTR bstr;
     //VARIANT var;
     CONTROLTYPEID ct;
+    BOOL bl;
 
     hr = _elm->get_CurrentName(&bstr);
-    Tell("_elm->get_CurrentName failed");
-    _property["Name"] = ToString(bstr);
+    if (SUCCEEDED(hr))
+    {
+        _property["Name"] = ToString(bstr);
+        SysFreeString(bstr);
+    }
 
     hr = _elm->get_CurrentAutomationId(&bstr);
-    Tell("_elm->get_CurrentAutomationId failed");
-    _property["AutomationId"] = ToString(bstr);
+    if (SUCCEEDED(hr))
+    {
+        _property["AutomationId"] = ToString(bstr);
+        SysFreeString(bstr);
+    }
 
     //hr = _elm->get_CurrentAccessKey(&bstr);
     //Tell("_elm->get_CurrentAccessKey failed");
@@ -91,13 +123,30 @@ bool element::LoadProperty()
     //_property["Value"] = ToString(var.bstrVal);
 
     hr = _elm->get_CurrentControlType(&ct);
-    Tell("_elm->get_CurrentControlType failed");
-    _property["ControlType"] = to_string(ct);
-    _interact = interact_ct.count(ct) > 0;
+    if (SUCCEEDED(hr))
+    {
+        _property["ControlType"] = to_string(ct);
+        _interact = interact_ct.count(ct) > 0;
+    }
 
     hr = _elm->get_CurrentLocalizedControlType(&bstr);
-    Tell("_elm->get_CurrentLocalizedControlType failed");
-    _property["LocalizedControlType"] = ToString(bstr);
+    if (SUCCEEDED(hr))
+    {
+        _property["LocalizedControlType"] = ToString(bstr);
+        SysFreeString(bstr);
+    }
+
+    bl = FALSE;
+    IUIAutomationElement9* e9 = nullptr;
+    hr = _elm->QueryInterface(&e9);
+    if (SUCCEEDED(hr))
+    {
+        hr = e9->get_CurrentIsDialog(&bl);
+        if (SUCCEEDED(hr) && bl)
+        {
+            _property["IsDialog"] = "true";
+        }
+    }
 
     _property_loaded = true;
     return true;
@@ -125,9 +174,11 @@ double element::InteractGrade(point p)
     {
         return 0;
     }
+    double areaSqr4 = sqrt(sqrt(areaSz));
 
-    double g = double(Depth() + 8);
-    g = g * g;
+    // g: 1 ~ 20
+    // areaSqr: 5 ~ 20
+    double g = double(Depth()) + 1.0;
     return g / areaSz;
 }
 
@@ -182,18 +233,20 @@ void element::Matching(
         return;
     }
 
-    if (stack.automation_id.size() > 0)
+    // max 2.0
+    double lcss = (double)LCSS(stack.element_name, Property("Name"));
+    lcss = max(lcss, 5);
+    if (lcss > 0.1)
     {
-        score_inc += 50.0;
+        int len1 = (int)stack.element_name.size();
+        int len2 = (int)Property("Name").size();
+        lcss *= (min(len1, len2)) / (max(len1, len2) + 0.1);
     }
-    if (stack.element_name == Property("Name"))
-    {
-        score_inc += 2.0;
-    }
-    if (stack.sub_index == SubIdx())
-    {
-        score_inc += 0.5;
-    }
+    score_inc += lcss * 0.4;
+
+    // max 1.5
+    int idx_diff = abs(stack.sub_index - SubIdx());
+    score_inc += (5 - max(idx_diff, 5)) * 0.3;
 
     double score_new = score + score_inc;
     if (es_end == 0)

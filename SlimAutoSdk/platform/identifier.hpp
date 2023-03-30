@@ -8,6 +8,13 @@ using json = nlohmann::json;
 namespace slim
 {
 
+struct WndInfo
+{
+    string cls;
+    string win;
+    HWND   wnd;
+};
+
 enum action_type
 {
     ACTION_NONE,

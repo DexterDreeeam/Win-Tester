@@ -1,3 +1,4 @@
+#include "loop.hpp"
 #include "runner.hpp"
 #include "platform/platform.hpp"
 #include "platform/action.hpp"
@@ -7,16 +8,44 @@ namespace slim
 
 bool runner::Run(const string& str)
 {
-    Sleep(1000);
-    auto as = action_set::FromString(str);
-    for (auto ac : as._va)
+    static thread t;
+
+    lock_guard<mutex> guard(mtx);
+    if (GlobalInfo::I()->running)
     {
-        Sleep(ac->wait_time_ms);
-        if (!Act(ac) && !ActElement(ac))
-        {
-            return false;
-        }
+        return false;
     }
+    if (t.joinable())
+    {
+        t.join();
+    }
+
+    GlobalInfo::I()->running = true;
+    t = thread(
+        [=](shared_ptr<string> str_c)
+        {
+            auto str_cc = str_c;
+            try
+            {
+                Sleep(1000);
+                auto as = action_set::FromString(str_c->c_str());
+                for (auto ac : as._va)
+                {
+                    Sleep(ac->wait_time_ms);
+                    if (!Act(ac) && !ActElement(ac))
+                    {
+                        break;
+                    }
+                }
+            }
+            catch (...)
+            {
+                // todo
+            }
+            GlobalInfo::I()->running = false;
+        },
+        make_shared<string>(str));
+
     return true;
 }
 

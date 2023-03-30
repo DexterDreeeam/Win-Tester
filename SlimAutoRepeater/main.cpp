@@ -51,6 +51,7 @@ FrameContext* WaitForNextFrameResources();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 bool SlimLoop();
+void SlimLoopStart();
 bool GuiLoop(ImGuiWindowFlags window_flags, bool& done);
 
 // Main code
@@ -113,6 +114,8 @@ int WinMain(
     window_flags |= ImGuiWindowFlags_UnsavedDocument;
 
     // Main loop
+    SlimLoopStart();
+
     bool done = false;
     while (!done)
     {
@@ -129,7 +132,7 @@ int WinMain(
         if (done)
             break;
 
-        SlimLoop();
+        // SlimLoop();
 
         // Start the Dear ImGui frame
         ImGui_ImplDX12_NewFrame();

@@ -14,9 +14,8 @@ struct GlobalInfo
     GlobalInfo() :
         recording(false),
         point(),
-        chain()
+        chain(make_shared<slim::element_chain>())
     {
-        chain = make_shared<slim::element_chain>();
     }
 
     static const vector<string>& Consoles()
@@ -31,7 +30,6 @@ struct GlobalInfo
 
     bool recording = false;
     bool running = false;
-
     bool console_window = false;
 
     slim::point point;

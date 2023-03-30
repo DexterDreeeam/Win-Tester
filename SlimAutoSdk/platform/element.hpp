@@ -15,7 +15,9 @@ public:
     friend struct iter;
 
 public:
-    element(shared_ptr<platform> p, int sub_idx, int depth = -1, IUIAutomationElement* e = nullptr);
+    element(IUIAutomationCondition* con, int sub_idx = -1, int depth = -1, IUIAutomationElement* e = nullptr);
+
+    element(IUIAutomationCondition* con, IUIAutomationElement* e);
 
     element(const element& rhs) = delete;
 
@@ -23,6 +25,8 @@ public:
     {
         Rels(_elm);
     }
+
+    static list<shared_ptr<element>> GenerateStacks(IUIAutomationCondition* con, point p);
 
     bool Valid() const
     {
@@ -81,6 +85,15 @@ public:
         return "";
     }
 
+    bool IsDialog()
+    {
+        if (!_property_loaded && !LoadProperty())
+        {
+            return false;
+        }
+        return _property["IsDialog"] == "true";
+    }
+
     double InteractGrade(POINT pt)
     {
         return InteractGrade(point(pt));
@@ -111,7 +124,7 @@ public:
     bool Test();
 
 private:
-    shared_ptr<platform>         _plt;
+    IUIAutomationCondition*      _con;
     int                          _sub_idx;
     int                          _depth;
     IUIAutomationElement*        _elm;
@@ -159,7 +172,7 @@ __declspec(selectany) set<CONTROLTYPEID> interact_ct =
     //UIA_ToolTipControlTypeId,
     //UIA_TreeControlTypeId,
     UIA_TreeItemControlTypeId,
-    //UIA_CustomControlTypeId,
+    UIA_CustomControlTypeId,
     //UIA_GroupControlTypeId,
     //UIA_ThumbControlTypeId,
     //UIA_DataGridControlTypeId,

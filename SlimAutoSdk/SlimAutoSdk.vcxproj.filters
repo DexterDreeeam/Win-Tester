@@ -7,6 +7,7 @@
     <ClCompile Include="platform\element_chain.cpp" />
     <ClCompile Include="platform\action.cpp" />
     <ClCompile Include="platform\identifier.cpp" />
+    <ClCompile Include="utils\draw.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.hpp" />

@@ -10,7 +10,8 @@ class action;
 class runner
 {
 public:
-    runner()
+    runner() :
+        mtx()
     {
     }
 
@@ -32,6 +33,9 @@ private:
     static bool _IsTargetWindow(HWND wnd, shared_ptr<action> ac);
 
     static bool _KeyInput(char c);
+
+private:
+    mutex mtx;
 };
 
 }
