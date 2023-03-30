@@ -1,97 +1,31 @@
 #include "platform.hpp"
 #include "element.hpp"
-#include "identifier.hpp"
+#include "element_stack.hpp"
 
 namespace slim
 {
 
-element::element(IUIAutomationCondition* con, int sub_idx, int depth, IUIAutomationElement* e) :
-    _con(con),
-    _sub_idx(sub_idx),
+element::element(IUIAutomationElement* e, int prnt_idx, int depth) :
+    _uia_e(e),
+    _subs(),
+    _parent_idx(prnt_idx),
     _depth(depth),
-    _elm(e),
-    _subs(),
     _area(),
-    _property(),
-    _property_loaded(false),
-    _interact(false)
+    _name(),
+    _auto_id(),
+    _control_str(),
+    _control(),
+    _interact(false),
+    _dialog(false)
 {
-    HRESULT hr;
-    RECT rc;
-
-    hr = _elm->get_CurrentBoundingRectangle(&rc);
-    Tell("elm->get_CurrentBoundingRectangle failed");
-
-    _area = area(rc);
+    _LoadProperty();
 }
 
-element::element(IUIAutomationCondition* con, IUIAutomationElement* e) :
-    _con(con),
-    _sub_idx(-1),
-    _depth(-1),
-    _elm(e),
-    _subs(),
-    _area(),
-    _property(),
-    _property_loaded(false),
-    _interact(false)
-{
-    HRESULT hr;
-    RECT rc;
-
-    hr = _elm->get_CurrentBoundingRectangle(&rc);
-    Tell("elm->get_CurrentBoundingRectangle failed");
-
-    _area = area(rc);
-}
-
-list<shared_ptr<element>> element::GenerateStacks(IUIAutomationCondition* con, point p)
-{
-    auto elm = make_shared<element>(con);
-}
-
-bool element::LoadSub(int depth, int depth_remain)
+void element::_LoadProperty()
 {
     if (Invalid())
     {
-        return false;
-    }
-
-    HRESULT hr;
-    IUIAutomationElementArray* elmArr;
-
-    hr = _elm->FindAll(TreeScope_Children, _con, &elmArr);
-    Tell("FindAll() failed when LoadSub()");
-
-    int len = 0;
-    hr = elmArr->get_Length(&len);
-    Tell("get_Length failed");
-
-    for (int i = 0; i < len; ++i)
-    {
-        IUIAutomationElement* c;
-        hr = elmArr->GetElement(i, &c);
-        Tell("elmArr->GetElement failed");
-        _subs.push_back(make_shared<element>(_con, i, depth, c));
-        if (depth_remain == 0)
-        {
-            continue;
-        }
-        _subs.back()->LoadSub(depth + 1, depth_remain == -1 ? -1 : depth_remain - 1);
-    }
-    return true;
-}
-
-bool element::LoadProperty()
-{
-    if (Invalid())
-    {
-        return false;
-    }
-
-    if (_property_loaded)
-    {
-        return true;
+        return;
     }
 
     HRESULT hr;
@@ -100,76 +34,87 @@ bool element::LoadProperty()
     CONTROLTYPEID ct;
     BOOL bl;
 
-    hr = _elm->get_CurrentName(&bstr);
+    hr = _uia_e->get_CachedName(&bstr);
     if (SUCCEEDED(hr))
     {
-        _property["Name"] = ToString(bstr);
+        _name = ToString(bstr);
         SysFreeString(bstr);
     }
 
-    hr = _elm->get_CurrentAutomationId(&bstr);
+    hr = _uia_e->get_CachedAutomationId(&bstr);
     if (SUCCEEDED(hr))
     {
-        _property["AutomationId"] = ToString(bstr);
+        _auto_id = ToString(bstr);
         SysFreeString(bstr);
     }
 
-    //hr = _elm->get_CurrentAccessKey(&bstr);
-    //Tell("_elm->get_CurrentAccessKey failed");
-    //_property["AccessKey"] = ToString(bstr);
-
-    //hr = _elm->GetCurrentPropertyValue(UIA_ValueValuePropertyId, &var);
-    //Tell("_elm->GetCurrentPropertyValue failed");
-    //_property["Value"] = ToString(var.bstrVal);
-
-    hr = _elm->get_CurrentControlType(&ct);
+    hr = _uia_e->get_CurrentLocalizedControlType(&bstr);
     if (SUCCEEDED(hr))
     {
-        _property["ControlType"] = to_string(ct);
+        _control_str = ToString(bstr);
+        SysFreeString(bstr);
+    }
+
+    hr = _uia_e->get_CachedControlType(&ct);
+    if (SUCCEEDED(hr))
+    {
+        _control = ct;
         _interact = interact_ct.count(ct) > 0;
     }
 
-    hr = _elm->get_CurrentLocalizedControlType(&bstr);
-    if (SUCCEEDED(hr))
-    {
-        _property["LocalizedControlType"] = ToString(bstr);
-        SysFreeString(bstr);
-    }
-
-    bl = FALSE;
     IUIAutomationElement9* e9 = nullptr;
-    hr = _elm->QueryInterface(&e9);
+    hr = _uia_e->QueryInterface(&e9);
     if (SUCCEEDED(hr))
     {
+        bl = FALSE;
         hr = e9->get_CurrentIsDialog(&bl);
         if (SUCCEEDED(hr) && bl)
         {
-            _property["IsDialog"] = "true";
+            _dialog = true;
         }
     }
+}
 
-    _property_loaded = true;
-    return true;
+void element::LoadSub(bool recur)
+{
+    if (Invalid() || _subs.size() > 0)
+    {
+        return;
+    }
+
+    HRESULT hr;
+    IUIAutomationElementArray* arr;
+
+    hr = _uia_e->FindAllBuildCache(TreeScope_Children, platform::I()->_con, platform::I()->_request, &arr);
+    Fail(, "_uia_e->FindAllBuildCache(TreeScope_Children, platform::I()->_con, platform::I()->_request, &arr)");
+    escape ef = [=]() mutable { arr->Release(); };
+
+    int len = 0;
+    hr = arr->get_Length(&len);
+    Fail(, "arr->get_Length(&len)");
+
+    for (int i = 0; i < len; ++i)
+    {
+        IUIAutomationElement* c;
+        hr = arr->GetElement(i, &c);
+        Fail(,"arr->GetElement(i, &c)");
+        auto r_c = xref<element>::x(c, i, _depth == -1 ? -1 : _depth + 1);
+        if (recur)
+        {
+            r_c->LoadSub(true);
+        }
+        _subs.push_back(r_c);
+    }
 }
 
 double element::InteractGrade(point p)
 {
-    if (!Area().Inside(p))
+    if (!_area.Inside(p) || !_interact)
     {
         return 0;
     }
 
-    if (!_property_loaded && !LoadProperty())
-    {
-        return 0;
-    }
-
-    if (!Interact())
-    {
-        return 0;
-    }
-
-    double areaSz = (double)Area().size();
+    double areaSz = (double)_area.size();
     if (areaSz <= 0)
     {
         return 0;
@@ -178,38 +123,28 @@ double element::InteractGrade(point p)
 
     // g: 1 ~ 20
     // areaSqr: 5 ~ 20
-    double g = double(Depth()) + 1.0;
+    double g = double(_depth) + 1.0;
     return g / areaSz;
 }
 
-string element::Identifier()
+string element::Identifier() const
 {
-    if (!LoadProperty())
-    {
-        return "";
-    }
-
     string id = "";
-    id += "[" + to_string(SubIdx()) + "]";
-    id += "(" + Property("ControlType") + ")";
-    id += "{{" + Property("Name") + "}}";
-    id += "<<" + Property("AutomationId") + ">>";
+    id += "[" + to_string(_parent_idx) + "]";
+    id += "(" + to_string(_control) + ")";
+    id += "{{" + _name + "}}";
+    id += "<<" + _auto_id + ">>";
     return id;
 }
 
-string element::FriendlyIdentifier()
+string element::FriendlyIdentifier() const
 {
-    if (!LoadProperty())
-    {
-        return "";
-    }
-
     string id = "";
-    id += "[" + to_string(SubIdx()) + "]";
-    id += "(" + Property("LocalizedControlType") + ")";
-    id += "{{" + Property("Name") + "}}";
-    id += "<<" + Property("AutomationId") + ">>";
-    id += " " + Area().stringify();
+    id += "[" + to_string(_parent_idx) + "]";
+    id += "(" + _control_str + ")";
+    id += "{{" + _name + "}}";
+    id += "<<" + _auto_id + ">>";
+    id += " " + _area.stringify();
     return id;
 }
 
@@ -217,7 +152,7 @@ void element::Matching(
     const vector<element_stack>& es, int es_end, shared_ptr<element> self,
     double score, vector<pair<shared_ptr<element>, double>>& rst)
 {
-    if (!LoadProperty() || es_end < 0)
+    if (es_end < 0)
     {
         return;
     }
@@ -225,27 +160,24 @@ void element::Matching(
     double score_inc = 0;
     auto& stack = es[es_end];
 
-    string auto_id = Property("AutomationId");
-    int ctl_type = atoi(Property("ControlType").c_str());
-
-    if (stack.automation_id != auto_id || stack.control_type != ctl_type)
+    if (stack.automation_id != _auto_id || stack.control_type != _control)
     {
         return;
     }
 
     // max 2.0
-    double lcss = (double)LCSS(stack.element_name, Property("Name"));
+    double lcss = (double)LCSS(stack.element_name, _name);
     lcss = max(lcss, 5);
     if (lcss > 0.1)
     {
         int len1 = (int)stack.element_name.size();
-        int len2 = (int)Property("Name").size();
+        int len2 = (int)_name.size();
         lcss *= (min(len1, len2)) / (max(len1, len2) + 0.1);
     }
     score_inc += lcss * 0.4;
 
     // max 1.5
-    int idx_diff = abs(stack.sub_index - SubIdx());
+    int idx_diff = abs(stack.parent_index - _parent_idx);
     score_inc += (5 - max(idx_diff, 5)) * 0.3;
 
     double score_new = score + score_inc;
@@ -285,8 +217,8 @@ bool element::Act(action_type actionType)
 
 bool element::Hover()
 {
-    int x = Area().center().x;
-    int y = Area().center().y;
+    int x = _area.center().x;
+    int y = _area.center().y;
     if (!SetCursorPos(x, y))
     {
         return false;
@@ -327,7 +259,7 @@ bool element::Envoke2()
 {
     HRESULT hr;
     IUnknown* pattern;
-    hr = _elm->GetCurrentPattern(UIA_LegacyIAccessiblePatternId, &pattern);
+    hr = _uia_e->GetCurrentPattern(UIA_LegacyIAccessiblePatternId, &pattern);
     Tell("_elm->GetCurrentPattern(UIA_LegacyIAccessiblePatternId, &pattern) failed");
     if (FAILED(hr) || !pattern)
     {
@@ -351,8 +283,8 @@ bool element::Envoke2()
 
 bool element::Envoke_()
 {
-    int x = Area().center().x;
-    int y = Area().center().y;
+    int x = _area.center().x;
+    int y = _area.center().y;
     if (!SetCursorPos(x, y))
     {
         return false;
@@ -382,8 +314,8 @@ bool element::Envoke_()
 
 bool element::Menu()
 {
-    int x = Area().center().x;
-    int y = Area().center().y;
+    int x = _area.center().x;
+    int y = _area.center().y;
     if (!SetCursorPos(x, y))
     {
         return false;
@@ -417,10 +349,10 @@ bool element::Test()
     IUnknown* pattern;
     for (int i = UIA_InvokePatternId; i < UIA_InvokePatternId + 50; ++i)
     {
-        hr = _elm->GetCurrentPattern(i, &pattern);
+        hr = _uia_e->GetCurrentPattern(i, &pattern);
         if (SUCCEEDED(hr) && pattern)
         {
-            platform::I()->Console(format("{} Control Pattern is supported", i));
+            //platform::I()->Console(format("{} Control Pattern is supported", i));
         }
     }
 

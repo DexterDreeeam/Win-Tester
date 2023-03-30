@@ -1,13 +1,16 @@
 #pragma once
 
 #include "common.hpp"
-#include "element.hpp"
-#include "element_chain.hpp"
+#include "area.hpp"
+#include "identifier.hpp"
 
 namespace slim
 {
 
-class platform
+class element;
+class element_chain;
+
+class platform : public xref<platform>
 {
     friend class element;
 
@@ -26,46 +29,44 @@ public:
 
     ~platform();
 
-    WndInfo GetWndInfo(HWND wnd);
+    static mutex& Mutex(const string& name);
 
-    void UpdateDesktopWnds();
+    static WndInfo GetWndInfo(HWND wnd);
 
-    vector<WndInfo> GetWnds();
+    static void UpdateDesktopWnds();
 
-    vector<WndInfo> GetWnds(const string& cls);
+    static vector<WndInfo> GetWnds();
 
-    shared_ptr<element> Diagram(HWND win = nullptr);
+    static vector<WndInfo> GetWnds(const string& cls);
 
-    shared_ptr<element_chain> ElementChainByPoint(point p);
+    static shared_ptr<element_chain> GetElementChainInActiveWindow(point p);
 
-    shared_ptr<element_chain> ElementChainByPoint2(point p);
+    static shared_ptr<element_chain> GetElementChainInDesktop(point p);
 
-    void Elements(HWND wnd, point p, vector<pair<shared_ptr<slim::element>, int>>& vpei);
+    static shared_ptr<element> FindElementInActiveWindow();
 
-    const vector<string>& Consoles() const
-    {
-        return _consoles;
-    }
+    static shared_ptr<element> FindElementInDesktop();
 
-    void Console(const string& c)
-    {
-        _consoles.push_back(c);
-    }
+    static void Test(point p);
 
-    void ClearConsole()
-    {
-        _consoles.clear();
-    }
+    static vector<string> Consoles();
+
+    static void Console(const string& c);
+
+    static void ClearConsole();
 
 private:
-    static BOOL CALLBACK platform::_EnumWindowsCb(HWND hWnd, LPARAM lParam);
+    static BOOL CALLBACK _EnumWindowsCb(HWND hWnd, LPARAM lParam);
+
+    static void _GetElementStacks(shared_ptr<element> root, point p, vector<shared_ptr<element>>& ve);
 
 private:
     static shared_ptr<platform>   _ins;
 
 private:
-    IUIAutomation*                _ctx;
+    IUIAutomation*                _uia;
     IUIAutomationCondition*       _con;
+    IUIAutomationCacheRequest*    _request;
 
     map<string, mutex*>           _mtxs;
     map<string, vector<WndInfo>>  _desktop_wnds; // class name : vInfo

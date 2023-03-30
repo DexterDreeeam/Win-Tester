@@ -8,29 +8,31 @@ namespace slim
 {
 
 class platform;
+class element_stack;
 
-class element
+struct search_criteria
+{
+    
+};
+
+class element : public xref<element>
 {
 public:
     friend struct iter;
 
 public:
-    element(IUIAutomationCondition* con, int sub_idx = -1, int depth = -1, IUIAutomationElement* e = nullptr);
-
-    element(IUIAutomationCondition* con, IUIAutomationElement* e);
+    element(IUIAutomationElement* e, int prnt_idx = -1, int depth = -1);
 
     element(const element& rhs) = delete;
 
     ~element()
     {
-        Rels(_elm);
+        Rels(_uia_e);
     }
-
-    static list<shared_ptr<element>> GenerateStacks(IUIAutomationCondition* con, point p);
 
     bool Valid() const
     {
-        return _elm != nullptr;
+        return _uia_e != nullptr;
     }
 
     bool Invalid() const
@@ -38,7 +40,7 @@ public:
         return !Valid();
     }
 
-    bool LoadSub(int depth, int depth_remain = -1);
+    void LoadSub(bool recur);
 
     int SubCount() const
     {
@@ -54,46 +56,6 @@ public:
         return _subs[idx];
     }
 
-    int SubIdx() const
-    {
-        return _sub_idx;
-    }
-
-    int Depth() const
-    {
-        return _depth;
-    }
-
-    area Area() const
-    {
-        return _area;
-    }
-
-    bool Interact() const
-    {
-        return _interact;
-    }
-
-    bool LoadProperty();
-
-    string Property(const string& key)
-    {
-        if (_property.count(key))
-        {
-            return _property[key];
-        }
-        return "";
-    }
-
-    bool IsDialog()
-    {
-        if (!_property_loaded && !LoadProperty())
-        {
-            return false;
-        }
-        return _property["IsDialog"] == "true";
-    }
-
     double InteractGrade(POINT pt)
     {
         return InteractGrade(point(pt));
@@ -101,9 +63,9 @@ public:
 
     double InteractGrade(point p);
 
-    string Identifier();
+    string Identifier() const;
 
-    string FriendlyIdentifier();
+    string FriendlyIdentifier() const;
 
     void Matching(
         const vector<element_stack>& es, int es_end, shared_ptr<element> self,
@@ -124,15 +86,22 @@ public:
     bool Test();
 
 private:
-    IUIAutomationCondition*      _con;
-    int                          _sub_idx;
+    void _LoadProperty();
+
+public:
+    int                          _parent_idx;
     int                          _depth;
-    IUIAutomationElement*        _elm;
-    vector<shared_ptr<element>>  _subs;
     area                         _area;
-    map<string, string>          _property;
-    bool                         _property_loaded;
+    string                       _name;
+    string                       _auto_id;
+    string                       _control_str;
+    int                          _control;
     bool                         _interact;
+    bool                         _dialog;
+
+private:
+    IUIAutomationElement*        _uia_e;
+    vector<shared_ptr<element>>  _subs;
 };
 
 template<typename Fn>
@@ -144,6 +113,16 @@ void IterateElement(shared_ptr<element> elm, Fn f)
         IterateElement(elm->Sub(i), f);
     }
 }
+
+__declspec(selectany) vector<long> element_props =
+{
+    UIA_BoundingRectanglePropertyId,
+    UIA_NamePropertyId,
+    UIA_AutomationIdPropertyId,
+    UIA_ControlTypePropertyId,
+    UIA_LocalizedControlTypePropertyId,
+    UIA_IsDialogPropertyId,
+};
 
 __declspec(selectany) set<CONTROLTYPEID> interact_ct =
 {

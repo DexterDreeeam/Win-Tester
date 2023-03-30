@@ -3,6 +3,7 @@
 #include "common.hpp"
 #include "json.hpp"
 #include "identifier.hpp"
+#include "element_stack.hpp"
 
 using json = nlohmann::json;
 
@@ -11,21 +12,19 @@ namespace slim
 
 class element_chain;
 
-class action
+class action : public xref<action>
 {
 public:
-    action_type type;
-    map<string, string> parameter;
-    string window_name;
-    string class_name;
-    vector<element_stack> element_stacks;
-    int wait_time_ms;
+    action_type            type;
+    map<string, string>    parameter;
+    WndInfo                wnd_info;
+    vector<element_stack>  element_stacks;
+    int                    wait_time_ms;
 
     action() :
         type(action_type::ACTION_NONE),
         parameter(),
-        window_name(),
-        class_name(),
+        wnd_info(),
         element_stacks(),
         wait_time_ms(1000)
     {
@@ -70,8 +69,9 @@ public:
     json ToJson() const
     {
         auto j = json::object();
-        j["window_name"] = window_name;
-        j["class_name"] = class_name;
+        j["window"] = json::object();
+        j["window"]["name"] = wnd_info.win;
+        j["window"]["class"] = wnd_info.cls;
         j["action_type"] = TypeToString(type);
         j["parameter"] = parameter;
 
@@ -87,9 +87,9 @@ public:
 
     static shared_ptr<action> FromJson(const json& j)
     {
-        auto ac = make_shared<action>();
-        ac->window_name = j["window_name"];
-        ac->class_name = j["class_name"];
+        auto ac = xref<action>::x();
+        ac->wnd_info.win = j["window"]["name"];
+        ac->wnd_info.cls = j["window"]["class"];
         ac->type = StringToType(j["action_type"]);
         ac->parameter = j["parameter"];
 
@@ -108,8 +108,9 @@ public:
     }
 };
 
-struct action_set
+class action_set : public xref<action_set>
 {
+public:
     vector<shared_ptr<action>> _va;
 
     void Add(shared_ptr<action> ac)

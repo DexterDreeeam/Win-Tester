@@ -1,18 +1,36 @@
 #include "platform.hpp"
+#include "element.hpp"
+#include "element_chain.hpp"
 
 namespace slim
 {
 
 platform::platform() :
-    _ctx(nullptr),
-    _con(nullptr)
+    _uia(nullptr),
+    _con(nullptr),
+    _request(nullptr),
+    _mtxs(),
+    _desktop_wnds(),
+    _consoles()
 {
     HRESULT hr;
-    hr = CoCreateInstance(__uuidof(CUIAutomation8), NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&_ctx));
-    Tell("create platform failed");
+    hr = CoInitialize(NULL);
+    Tell("CoInitialize(NULL) error")
 
-    hr = _ctx->CreateTrueCondition(&_con);
-    Tell("create true condition failed");
+    hr = CoCreateInstance(__uuidof(CUIAutomation8), NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&_uia));
+    Tell("CoCreateInstance(__uuidof(CUIAutomation8), NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&_ctx))error");
+
+    hr = _uia->CreateTrueCondition(&_con);
+    Tell("CreateTrueCondition(&_con) error");
+
+    hr = _uia->CreateCacheRequest(&_request);
+    Tell("_uia->CreateCacheRequest(&_request) error");
+
+    for (auto p : element_props)
+    {
+        hr = _request->AddProperty(p);
+        Tell("_request->AddProperty(p) error");
+    }
 
     _mtxs["_desktop_wnds"] = new mutex();
     _mtxs["_consoles"]     = new mutex();
@@ -20,13 +38,19 @@ platform::platform() :
 
 platform::~platform()
 {
+    Rels(_request);
     Rels(_con);
-    Rels(_ctx);
+    Rels(_uia);
+}
+
+mutex& platform::Mutex(const string& name)
+{
+    return *I()->_mtxs[name];
 }
 
 BOOL CALLBACK platform::_EnumWindowsCb(HWND wnd, LPARAM par)
 {
-    auto info = I()->GetWndInfo(wnd);
+    auto info = GetWndInfo(wnd);
     I()->_desktop_wnds[info.cls].push_back(info);
     return TRUE; // continue
 }
@@ -50,14 +74,14 @@ WndInfo platform::GetWndInfo(HWND wnd)
 
 void platform::UpdateDesktopWnds()
 {
-    lock_guard<mutex> _guard(*_mtxs["_desktop_wnds"]);
+    guard __g(Mutex("_desktop_wnds"));
     I()->_desktop_wnds.clear();
     EnumWindows(_EnumWindowsCb, NULL);
 }
 
 vector<WndInfo> platform::GetWnds()
 {
-    lock_guard<mutex> _guard(*_mtxs["_desktop_wnds"]);
+    guard __g(Mutex("_desktop_wnds"));
     vector<WndInfo> ret;
     for (const auto& p : I()->_desktop_wnds)
     {
@@ -71,161 +95,132 @@ vector<WndInfo> platform::GetWnds()
 
 vector<WndInfo> platform::GetWnds(const string& cls)
 {
-    lock_guard<mutex> _guard(*_mtxs["_desktop_wnds"]);
+    guard __g(Mutex("_desktop_wnds"));
     return I()->_desktop_wnds[cls];
 }
 
-shared_ptr<element> platform::Diagram(HWND win)
+struct elementSt
 {
-    HRESULT hr;
-    IUIAutomationElement* root = nullptr;
+    shared_ptr<slim::element>  elm;
+    int                        parent;
+    int                        dialogs;
+};
 
-    if (!win)
+static void _PermuteElementTree(vector<elementSt>& candidates)
+{
+    int next = 0;
+    while (next < candidates.size())
     {
-        win = GetForegroundWindow();
+        auto nest = candidates[next];
+        for (int i = 0; i < nest.elm->SubCount(); ++i)
+        {
+            nest.elm->LoadSub(false);
+            auto s = nest.elm->Sub(i);
+            candidates.push_back({ s, next, nest.dialogs + (s->_dialog ? 1 : 0) });
+        }
+        ++next;
     }
-
-    hr = _ctx->ElementFromHandle(win, &root);
-    Tell("ctx->ElementFromHandle(win, &root) failed");
-
-    auto ret = make_shared<element>(_ins, 0, 0, root);
-    ret->LoadSub(1);
-
-    return ret;
 }
 
-shared_ptr<element_chain> platform::ElementChainByPoint(point p)
+void platform::_GetElementStacks(shared_ptr<element> root, point p, vector<shared_ptr<element>>& ve)
 {
-    HWND window = GetForegroundWindow();
-    // e : e_parent_idx_in_cand
-    vector<pair<shared_ptr<slim::element>, int>> cand = {};
-    vector<int> throughDialog = {};
-    Elements(window, p, cand);
-    if (cand.size() == 0)
-    {
-        return nullptr;
-    }
+    //HRESULT hr;
+    vector<elementSt> candidates = {{ root, -1, 0 }};
+    _PermuteElementTree(candidates);
 
-    double maxGrade = -1;
+    double maxGrade = -1.0;
     int maxElmIdx = -1;
-    for (int i = 0; i < cand.size(); ++i)
+    for (int i = 0; i < candidates.size(); ++i)
     {
-        int dialogStacks = cand[i].second >= 0 ? throughDialog[cand[i].second] : 1;
-        bool isDialog = cand[i].first->IsDialog();
-        dialogStacks += isDialog ? 1 : 0;
-        double iG = cand[i].first->InteractGrade(p) * dialogStacks;
+        double iG = candidates[i].elm->InteractGrade(p) * (candidates[i].dialogs + 1);
         if (iG > maxGrade)
         {
             maxGrade = iG;
             maxElmIdx = i;
         }
-        throughDialog.push_back(dialogStacks);
     }
     if (maxElmIdx == -1)
-    {
-        return nullptr;
-    }
-
-    vector<shared_ptr<slim::element>> chain;
-    int parent = cand[maxElmIdx].second;
-    chain.push_back(cand[maxElmIdx].first);
-    while (parent >= 0)
-    {
-        auto p = cand[parent];
-        parent = p.second;
-        chain.push_back(p.first);
-    }
-
-    auto pName = WndClassName(window);
-    auto ec = make_shared<element_chain>();
-    ec->Load(pName.first, pName.second, chain);
-    return ec;
-}
-
-void platform::Elements(HWND wnd, point p, vector<pair<shared_ptr<slim::element>, int>>& vpei)
-{
-    if (!wnd)
-    {
-        wnd = GetForegroundWindow();
-    }
-
-    auto root = slim::platform::I()->Diagram(wnd);
-    if (p.x != INT_MIN && !root->Area().Inside(p))
     {
         return;
     }
 
-    // e : e_parent_idx_in_cand
-    vector<pair<shared_ptr<slim::element>, int>> elms = { { root, -1 } };
-    while (elms.size())
+    int parent = candidates[maxElmIdx].parent;
+    ve.clear();
+    ve.push_back(candidates[maxElmIdx].elm);
+    while (parent >= 0)
     {
-        auto e = elms.back();
-        elms.pop_back();
-        vpei.push_back(e);
-        int parent_idx = (int)vpei.size() - 1;
-        for (int i = e.first->SubCount() - 1; i >= 0; --i)
-        {
-            auto s = e.first->Sub(i);
-            elms.push_back({ s, parent_idx });
-        }
+        auto st = candidates[parent];
+        parent = st.parent;
+        ve.push_back(st.elm);
     }
 }
 
-shared_ptr<element_chain> platform::ElementChainByPoint2(point p)
+shared_ptr<element_chain> platform::GetElementChainInActiveWindow(point p)
 {
     HRESULT hr;
-    IUIAutomationElement* elm;
-    hr = _ctx->ElementFromPoint(POINT(p.x, p.y), &elm);
-    if (FAILED(hr))
-    {
-        return ElementChainByPoint(p);
-    }
+    HWND wnd;
+    IUIAutomationElement* uia_e;
 
-    
-
-    // e : e_parent_idx_in_cand
-    vector<pair<shared_ptr<slim::element>, int>> cand = {};
-    vector<int> throughDialog = {};
-    Elements(window, p, cand);
-    if (cand.size() == 0)
+    wnd = GetForegroundWindow();
+    if (!wnd)
     {
         return nullptr;
     }
 
-    double maxGrade = -1;
-    int maxElmIdx = -1;
-    for (int i = 0; i < cand.size(); ++i)
-    {
-        int dialogStacks = cand[i].second >= 0 ? throughDialog[cand[i].second] : 1;
-        bool isDialog = cand[i].first->IsDialog();
-        dialogStacks += isDialog ? 1 : 0;
-        double iG = cand[i].first->InteractGrade(p) * dialogStacks;
-        if (iG > maxGrade)
-        {
-            maxGrade = iG;
-            maxElmIdx = i;
-        }
-        throughDialog.push_back(dialogStacks);
-    }
-    if (maxElmIdx == -1)
-    {
-        return nullptr;
-    }
+    hr = I()->_uia->ElementFromHandleBuildCache(wnd, I()->_request, &uia_e);
+    Fail(nullptr, "I()->_uia->ElementFromHandleBuildCache(wnd, I()->_request, &uia_e) fail");
 
-    vector<shared_ptr<slim::element>> chain;
-    int parent = cand[maxElmIdx].second;
-    chain.push_back(cand[maxElmIdx].first);
-    while (parent >= 0)
-    {
-        auto p = cand[parent];
-        parent = p.second;
-        chain.push_back(p.first);
-    }
+    vector<shared_ptr<element>> ve;
+    _GetElementStacks(xref<element>::x(uia_e), p, ve);
 
-    auto pName = WndClassName(window);
-    auto ec = make_shared<element_chain>();
-    ec->Load(pName.first, pName.second, chain);
-    return ec;
+    return xref<element_chain>::x(GetWndInfo(wnd), ve);
+}
+
+shared_ptr<element_chain> platform::GetElementChainInDesktop(point p)
+{
+    HRESULT hr;
+    IUIAutomationElement* uia_e;
+
+    hr = I()->_uia->GetRootElementBuildCache(I()->_request, &uia_e);
+    Fail(nullptr, "I()->_uia->GetRootElementBuildCache(I()->_request, &uia_e) fail");
+
+    vector<shared_ptr<element>> ve;
+    _GetElementStacks(xref<element>::x(uia_e), p, ve);
+
+    return xref<element_chain>::x(WndInfo(), ve);
+}
+
+shared_ptr<element> platform::FindElementInActiveWindow()
+{
+    return nullptr;
+}
+
+shared_ptr<element> platform::FindElementInDesktop()
+{
+    return nullptr;
+}
+
+void platform::Test(point p)
+{
+
+}
+
+vector<string> platform::Consoles()
+{
+    guard __g(Mutex("_consoles"));
+    return I()->_consoles;
+}
+
+void platform::Console(const string& c)
+{
+    guard __g(Mutex("_consoles"));
+    return I()->_consoles.push_back(c);
+}
+
+void platform::ClearConsole()
+{
+    guard __g(Mutex("_consoles"));
+    return I()->_consoles.clear();
 }
 
 }

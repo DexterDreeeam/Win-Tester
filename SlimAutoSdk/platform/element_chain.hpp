@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.hpp"
+#include "identifier.hpp"
 
 namespace slim
 {
@@ -8,28 +9,19 @@ namespace slim
 class element;
 class action;
 
-class element_chain
+class element_chain : public xref<element_chain>
 {
     friend class action;
 
 public:
-    element_chain() :
-        _window(),
-        _class(),
-        _ve()
-    {
-    }
-
-    element_chain(const string& window, const string& cls, const vector<shared_ptr<element>>& ve) :
-        _window(window),
-        _class(cls),
+    element_chain(WndInfo& wndInfo, const vector<shared_ptr<element>>& ve) :
+        _wnd_info(wndInfo),
         _ve(ve)
     {
     }
 
     element_chain(const element_chain& rhs) :
-        _window(rhs._window),
-        _class(rhs._class),
+        _wnd_info(rhs._wnd_info),
         _ve(rhs._ve)
     {
     }
@@ -38,21 +30,14 @@ public:
     {
     }
 
-    void Load(const string& window, const string& cls, const vector<shared_ptr<element>>& ve)
-    {
-        _window = window;
-        _class = cls;
-        _ve = ve;
-    }
-
     bool Valid() const
     {
         return _ve.size() > 0;
     }
 
-    string Identifier();
+    string Identifier() const;
 
-    string FriendlyIdentifier();
+    string FriendlyIdentifier() const;
 
     shared_ptr<action> Hover(); // cursor hover
 
@@ -65,8 +50,7 @@ public:
     shared_ptr<action> Test();
 
 private:
-    string                       _window;
-    string                       _class;
+    WndInfo&                     _wnd_info;
     vector<shared_ptr<element>>  _ve; // from child to root
 };
 

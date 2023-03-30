@@ -10,8 +10,7 @@ action::action(
     action_type ty, shared_ptr<element_chain> ec, int wait) :
     type(ty),
     parameter(),
-    window_name(ec->_window),
-    class_name(ec->_class),
+    wnd_info(ec->_wnd_info),
     element_stacks(),
     wait_time_ms(wait)
 {
