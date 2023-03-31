@@ -63,4 +63,12 @@ public:
     }
 };
 
+class element_match
+{
+public:
+    WndInfo               wnd_info;
+    shared_ptr<element>   elm;
+    double                score;
+};
+
 }

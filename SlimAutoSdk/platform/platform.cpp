@@ -1,6 +1,7 @@
 #include "platform.hpp"
 #include "element.hpp"
 #include "element_chain.hpp"
+#include "action.hpp"
 
 namespace slim
 {
@@ -48,7 +49,7 @@ mutex& platform::Mutex(const string& name)
     return *I()->_mtxs[name];
 }
 
-BOOL CALLBACK platform::_EnumWindowsCb(HWND wnd, LPARAM par)
+BOOL CALLBACK _EnumWindowsCb(HWND wnd, LPARAM par)
 {
     auto info = GetWndInfo(wnd);
     I()->_desktop_wnds[info.cls].push_back(info);
@@ -122,7 +123,7 @@ static void _PermuteElementTree(vector<elementSt>& candidates)
     }
 }
 
-void platform::_GetElementStacks(shared_ptr<element> root, point p, vector<shared_ptr<element>>& ve)
+void _GetElementStacks(shared_ptr<element> root, point p, vector<shared_ptr<element>>& ve)
 {
     //HRESULT hr;
     vector<elementSt> candidates = {{ root, -1, 0 }};
@@ -185,19 +186,83 @@ shared_ptr<element_chain> platform::GetElementChainInDesktop(point p)
     Fail(nullptr, "I()->_uia->GetRootElementBuildCache(I()->_request, &uia_e) fail");
 
     vector<shared_ptr<element>> ve;
-    _GetElementStacks(xref<element>::x(uia_e), p, ve);
+    _GetElementStacks(xref<element>::x(uia_e, -1, 0), p, ve);
 
     return xref<element_chain>::x(WndInfo(), ve);
 }
 
-shared_ptr<element> platform::FindElementInActiveWindow()
+element_match _FindElement(shared_ptr<element> self, double score, const vector<element_stack>& es, int es_len = -1)
 {
-    return nullptr;
+    if (es_len == -1)
+    {
+        es_len = es.size();
+    }
+    if (es_len < 1)
+    {
+        return {};
+    }
+
+    double score_inc = 0;
+    const auto& stack = es[es_len - 1];
+    if (stack.automation_id != self->_auto_id || stack.control_type != self->_control)
+    {
+        return {};
+    }
+
+    // max 2.0
+    double lcss = (double)LCSS(stack.element_name, self->_name);
+    lcss = max(lcss, 5);
+    if (lcss > 0.1)
+    {
+        int len1 = (int)stack.element_name.size();
+        int len2 = (int)self->_name.size();
+        lcss *= (min(len1, len2)) / (max(len1, len2) + 0.1);
+    }
+    score_inc += lcss * 0.4;
+
+    // max 1.5
+    int idx_diff = abs(stack.parent_index - self->_parent_idx);
+    score_inc += (5 - max(idx_diff, 5)) * 0.3;
+
+    double score_new = score + score_inc;
+    if (es_len == 1)
+    {
+        rst.push_back({ self, score_new });
+        return;
+    }
+
+    for (int i = 0; i < SubCount(); ++i)
+    {
+        auto s = Sub(i);
+        s->Matching(es, es_end - 1, s, score_new, rst);
+    }
+
+    return {};
 }
 
-shared_ptr<element> platform::FindElementInDesktop()
+element_match platform::FindElementInWindow(WndInfo& wnd_info, vector<element_stack>& ess)
 {
-    return nullptr;
+    HRESULT hr;
+    HWND wnd;
+    IUIAutomationElement* uia_e;
+
+    hr = I()->_uia->ElementFromHandleBuildCache(wnd_info.wnd, I()->_request, &uia_e);
+    Fail({}, "I()->_uia->ElementFromHandleBuildCache(wnd_info.wnd, I()->_request, &uia_e) fail");
+
+    auto root = xref<element>::x(uia_e, -1, 0);
+    return _FindElement(root, 0, ess);
+}
+
+element_match platform::FindElementInDesktop(vector<element_stack>& ess)
+{
+    HRESULT hr;
+    IUIAutomationElement* uia_e;
+
+    hr = I()->_uia->GetRootElementBuildCache(I()->_request, &uia_e);
+    Fail({}, "I()->_uia->GetRootElementBuildCache(I()->_request, &uia_e) fail");
+
+    auto root = xref<element>::x(uia_e, -1, 0);
+    return _FindElement(root, ess, ess.size());
 }
 
 void platform::Test(point p)

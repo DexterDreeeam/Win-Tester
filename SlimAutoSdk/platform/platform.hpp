@@ -3,12 +3,14 @@
 #include "common.hpp"
 #include "area.hpp"
 #include "identifier.hpp"
+#include "element_stack.hpp"
 
 namespace slim
 {
 
 class element;
 class element_chain;
+class action;
 
 class platform : public xref<platform>
 {
@@ -43,9 +45,9 @@ public:
 
     static shared_ptr<element_chain> GetElementChainInDesktop(point p);
 
-    static shared_ptr<element> FindElementInActiveWindow();
+    static element_match FindElementInWindow(WndInfo& wnd_info, vector<element_stack>& ess);
 
-    static shared_ptr<element> FindElementInDesktop();
+    static element_match FindElementInDesktop(vector<element_stack>& ess);
 
     static void Test(point p);
 
@@ -54,11 +56,6 @@ public:
     static void Console(const string& c);
 
     static void ClearConsole();
-
-private:
-    static BOOL CALLBACK _EnumWindowsCb(HWND hWnd, LPARAM lParam);
-
-    static void _GetElementStacks(shared_ptr<element> root, point p, vector<shared_ptr<element>>& ve);
 
 private:
     static shared_ptr<platform>   _ins;

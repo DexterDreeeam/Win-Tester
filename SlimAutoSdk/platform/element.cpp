@@ -48,7 +48,7 @@ void element::_LoadProperty()
         SysFreeString(bstr);
     }
 
-    hr = _uia_e->get_CurrentLocalizedControlType(&bstr);
+    hr = _uia_e->get_CachedLocalizedControlType(&bstr);
     if (SUCCEEDED(hr))
     {
         _control_str = ToString(bstr);
@@ -67,7 +67,7 @@ void element::_LoadProperty()
     if (SUCCEEDED(hr))
     {
         bl = FALSE;
-        hr = e9->get_CurrentIsDialog(&bl);
+        hr = e9->get_CachedIsDialog(&bl);
         if (SUCCEEDED(hr) && bl)
         {
             _dialog = true;
