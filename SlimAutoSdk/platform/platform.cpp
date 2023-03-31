@@ -49,13 +49,6 @@ mutex& platform::Mutex(const string& name)
     return *I()->_mtxs[name];
 }
 
-BOOL CALLBACK _EnumWindowsCb(HWND wnd, LPARAM par)
-{
-    auto info = GetWndInfo(wnd);
-    I()->_desktop_wnds[info.cls].push_back(info);
-    return TRUE; // continue
-}
-
 WndInfo platform::GetWndInfo(HWND wnd)
 {
     char ch_win[256];
@@ -71,6 +64,13 @@ WndInfo platform::GetWndInfo(HWND wnd)
     ret.win = ch_win;
     ret.wnd = wnd;
     return ret;
+}
+
+BOOL CALLBACK _EnumWindowsCb(HWND wnd, LPARAM par)
+{
+    auto info = platform::I()->GetWndInfo(wnd);
+    I()->_desktop_wnds[info.cls].push_back(info);
+    return TRUE; // continue
 }
 
 void platform::UpdateDesktopWnds()
