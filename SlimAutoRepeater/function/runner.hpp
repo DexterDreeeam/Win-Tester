@@ -7,11 +7,12 @@ namespace slim
 
 class action;
 
-class runner
+class runner : public xref<runner>
 {
 public:
     runner() :
-        mtx()
+        _thrd(),
+        _stop(false)
     {
     }
 
@@ -19,23 +20,29 @@ public:
     {
     }
 
-    bool Run(const string& str);
+    static bool Run(const string& str);
 
-    bool Act(shared_ptr<action> ac);
-
-    bool ActElement(shared_ptr<action> ac);
+    static bool Stop();
 
 private:
-    vector<HWND> _FilterWindow(shared_ptr<action> ac);
+    bool _RunScope(const vector<shared_ptr<action>>& va, int start, int end);
 
-    static BOOL CALLBACK _EnumWindowsCb(HWND hWnd, LPARAM lParam);
+    int _RunLoop(const vector<shared_ptr<action>>& va, int start);
 
-    static bool _IsTargetWindow(HWND wnd, shared_ptr<action> ac);
+    bool _Act(shared_ptr<action> ac);
 
+    bool _ActElement(shared_ptr<action> ac);
+
+private:
     static bool _KeyInput(char c);
 
 private:
-    mutex mtx;
+    static shared_ptr<runner> _ins;
+
+    thread  _thrd;
+    bool    _stop;
 };
+
+__declspec(selectany) shared_ptr<runner> runner::_ins = nullptr;
 
 }

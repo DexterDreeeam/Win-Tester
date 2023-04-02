@@ -10,6 +10,11 @@ struct WndInfo
     string cls;
     string win;
     HWND   wnd;
+
+    bool IsGlobal() const
+    {
+        return cls.size() == 0 && win.size() == 0;
+    }
 };
 
 enum action_type

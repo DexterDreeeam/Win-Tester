@@ -24,6 +24,15 @@ string element_chain::Identifier() const
     return id;
 }
 
+area element_chain::Area() const
+{
+    if (_ve.size())
+    {
+        return _ve.front()->_area;
+    }
+    return area();
+}
+
 string element_chain::FriendlyIdentifier() const
 {
     if (!Valid())

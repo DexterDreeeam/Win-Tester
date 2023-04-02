@@ -39,11 +39,11 @@ struct area
     int top;
     int bottom;
 
-    area() :
-        left(),
-        right(),
-        top(),
-        bottom()
+    area(int l = 0, int r = 0, int t = 0, int b = 0) :
+        left(l),
+        right(r),
+        top(t),
+        bottom(b)
     {
     }
 

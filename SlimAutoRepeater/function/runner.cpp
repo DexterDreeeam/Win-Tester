@@ -2,55 +2,188 @@
 #include "runner.hpp"
 #include "platform/platform.hpp"
 #include "platform/action.hpp"
+#include "platform/element.hpp"
+#include "utils/draw.hpp"
 
 namespace slim
 {
 
 bool runner::Run(const string& str)
 {
-    static thread t;
-
-    lock_guard<mutex> guard(mtx);
-    if (GlobalInfo::I()->running)
+    if (!GlobalInfo::I()->Change(IDLE, IDLE_TO_RUNNING))
     {
         return false;
     }
-    if (t.joinable())
-    {
-        t.join();
-    }
 
-    GlobalInfo::I()->running = true;
-    t = thread(
-        [=](shared_ptr<string> str_c)
+    _ins = xref<runner>::x();
+    _ins->_stop = false;
+    _ins->_thrd = thread(
+        [=]()
         {
-            auto str_cc = str_c;
+            if (!GlobalInfo::I()->Change(IDLE_TO_RUNNING, RUNNING))
+            {
+                throw nullptr;
+            }
+
+            auto sp = _ins;
+            if (!sp)
+            {
+                return;
+            }
             try
             {
                 Sleep(1000);
-                auto as = action_set::FromString(str_c->c_str());
-                for (auto ac : as._va)
-                {
-                    Sleep(ac->wait_time_ms);
-                    if (!Act(ac) && !ActElement(ac))
-                    {
-                        break;
-                    }
-                }
+                auto as = action_set::FromString(str.c_str());
+                sp->_RunScope(as._va, 0, (int)as._va.size());
             }
             catch (...)
             {
                 // todo
             }
-            GlobalInfo::I()->running = false;
-        },
-        make_shared<string>(str));
 
+            GlobalInfo::I()->Change(RUNNING, RUNNING_TO_IDLE);
+            GlobalInfo::I()->Change(RUNNING_TO_IDLE, IDLE);
+        });
+    _ins->_thrd.detach();
     return true;
 }
 
-bool runner::Act(shared_ptr<action> ac)
+bool runner::Stop()
 {
+    auto ins = _ins;
+    if (!ins)
+    {
+        return false;
+    }
+    ins->_stop = true;
+    if (!GlobalInfo::I()->Change(RUNNING, RUNNING_TO_IDLE))
+    {
+        return false;
+    }
+    return true;
+}
+
+bool runner::_RunScope(const vector<shared_ptr<action>>& va, int start, int end)
+{
+    int idx = start;
+    while (idx < end)
+    {
+        if (_stop)
+        {
+            return false;
+        }
+
+        auto ac = va[idx];
+        if (ac->type == action_type::LOOP_START)
+        {
+            // loop start
+            int loop_len = _RunLoop(va, idx);
+            if (loop_len == -1)
+            {
+                return false; // run fail
+            }
+            idx += loop_len;
+        }
+        else if (ac->type == action_type::LOOP_END)
+        {
+            // unexpected
+            throw nullptr;
+        }
+        else
+        {
+            // normal action
+            if (_Act(ac))
+            {
+                ++idx;
+            }
+            else
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+int runner::_RunLoop(const vector<shared_ptr<action>>& va, int loop_start)
+{
+    int idx = loop_start;
+    if (va[idx++]->type != action_type::LOOP_START)
+    {
+        throw nullptr;
+    }
+
+    int loops = 1;
+    while (idx < va.size())
+    {
+        if (va[idx]->type == action_type::LOOP_START)
+        {
+            ++loops;
+        }
+        else if (va[idx]->type == action_type::LOOP_END)
+        {
+            --loops;
+        }
+
+        ++idx;
+
+        if (loops == 0)
+        {
+            break;
+        }
+    }
+
+    // idx: loop_end
+    string times_str = va[loop_start]->parameter["times"];
+    int times = -1;
+    if (times_str.size() > 0)
+    {
+        times = atoi(times_str.c_str());
+    }
+
+    string timeout_str = va[loop_start]->parameter["time-out"];
+    int seconds = -1;
+    if (timeout_str.size() > 0)
+    {
+        seconds = atoi(timeout_str.c_str());
+    }
+
+    auto time_start = chrono::system_clock::now();
+    int cnts = 0;
+
+    while (true)
+    {
+        if (_stop)
+        {
+            return -1;
+        }
+
+        if (!_RunScope(va, loop_start + 1, idx))
+        {
+            return -1; // fail
+        }
+        ++cnts;
+
+        if (times != -1 && cnts >= times)
+        {
+            break;
+        }
+
+        chrono::duration<double, std::milli> ms_span;
+        ms_span = chrono::system_clock::now() - time_start;
+        if (seconds != -1 && ms_span.count() >= seconds * 1000)
+        {
+            break;
+        }
+    }
+
+    return idx - loop_start;
+}
+
+bool runner::_Act(shared_ptr<action> ac)
+{
+    Sleep(ac->wait_time_ms);
+
     switch (ac->type)
     {
     case action_type::APP_LAUNCH:
@@ -71,90 +204,54 @@ bool runner::Act(shared_ptr<action> ac)
         return true;
 
     default:
-        return false;
+        return _ActElement(ac);
     }
 }
 
-bool runner::ActElement(shared_ptr<action> ac)
+bool runner::_ActElement(shared_ptr<action> ac)
 {
-    HWND best_wnd = nullptr;
-    shared_ptr<element> best_elm;
-    double best_score = 0.1;
+    shared_ptr<element> elm = nullptr;
+    platform::UpdateDesktopWnds();
 
-    auto wnds = _FilterWindow(ac);
-    for (auto wnd : wnds)
+    if (ac->wnd_info.IsGlobal())
     {
-        auto root = platform::I()->Diagram(wnd);
-        vector<pair<shared_ptr<element>, double>> ranks;
-        root->Matching(ac->element_stacks, (int)ac->element_stacks.size() - 1, root, 0, ranks);
-
-        double score_max = -1.0;
-        int idx_max = -1;
-        for (int i = 0; i < ranks.size(); ++i)
+        auto matched = platform::FindElementInDesktop(ac->element_stacks);
+        elm = (matched && matched->score > 0) ? matched->elm : nullptr;
+    }
+    else
+    {
+        auto wnds = platform::GetWnds(ac->wnd_info);
+        WndInfo best_wnd = {};
+        shared_ptr<element_matched> best = nullptr;
+        for (auto wnd : wnds)
         {
-            if (ranks[i].second > score_max)
+            auto matched = platform::FindElementInWindow(wnd, ac->element_stacks);
+            if (!best || (matched && matched->score > best->score))
             {
-                score_max = ranks[i].second;
-                idx_max = i;
+                best = matched;
+                best_wnd = wnd;
             }
         }
-        if (score_max > best_score)
+        if (best && best_wnd.wnd)
         {
-            best_wnd = wnd;
-            best_elm = ranks[idx_max].first;
-            best_score = score_max;
+            elm = best->elm;
+            if (GetForegroundWindow() != best_wnd.wnd && !SetForegroundWindow(best_wnd.wnd))
+            {
+                return false;
+            }
+            Sleep(200);
         }
     }
 
-    if (!best_wnd)
+    if (!elm)
     {
         return false;
     }
-
-    if (GetForegroundWindow() != best_wnd && !SetForegroundWindow(best_wnd))
+    if (GlobalInfo::I()->highlight_frame)
     {
-        return false;
+        // framer::draw(elm->_area);
     }
-    Sleep(200);
-    return best_elm->Act(ac->type);
-
-    return false;
-}
-
-struct _EnumWindowsStruct
-{
-    vector<HWND> targets;
-    shared_ptr<action> act = nullptr;
-};
-
-vector<HWND> runner::_FilterWindow(shared_ptr<action> ac)
-{
-    _EnumWindowsStruct st;
-    st.targets = vector<HWND>();
-    st.act = ac;
-
-    EnumWindows(runner::_EnumWindowsCb, (LPARAM)&st);
-    return st.targets;
-}
-
-BOOL CALLBACK runner::_EnumWindowsCb(HWND hWnd, LPARAM lParam)
-{
-    _EnumWindowsStruct* st = (_EnumWindowsStruct*)lParam;
-    if (_IsTargetWindow(hWnd, st->act))
-    {
-        st->targets.push_back(hWnd);
-    }
-    return TRUE; // continue
-}
-
-bool runner::_IsTargetWindow(HWND wnd, shared_ptr<action> ac)
-{
-    auto pName = platform::I()->WndClassName(wnd);
-    if (pName.second == ac->class_name) // class name
-    {
-        return true;
-    }
-    return false;
+    return elm->Act(ac->type);
 }
 
 bool runner::_KeyInput(char c)

@@ -30,6 +30,7 @@
     <ClInclude Include="platform\element_chain.hpp" />
     <ClInclude Include="platform\platform.hpp" />
     <ClInclude Include="utils\dbg.hpp" />
+    <ClInclude Include="utils\draw.hpp" />
     <ClInclude Include="utils\escape.hpp" />
     <ClInclude Include="utils\log.hpp" />
     <ClInclude Include="utils\str.hpp" />
@@ -77,6 +78,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -96,6 +98,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>

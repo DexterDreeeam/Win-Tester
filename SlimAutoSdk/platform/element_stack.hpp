@@ -63,12 +63,42 @@ public:
     }
 };
 
-class element_match
+class element_searching : public xref<element_searching>
 {
 public:
-    WndInfo               wnd_info;
-    shared_ptr<element>   elm;
-    double                score;
+    element_searching(const vector<element_stack>& ess, int dialogs = 0, double score = -1.0) :
+        ess(ess),
+        ess_len((int)ess.size()),
+        dialogs(dialogs),
+        score(score)
+    {
+    }
+
+    element_searching(const element_searching& rhs) :
+        ess(rhs.ess),
+        ess_len(rhs.ess_len),
+        dialogs(rhs.dialogs),
+        score(rhs.score)
+    {
+    }
+
+    const vector<element_stack>& ess;
+    int                          ess_len;
+    int                          dialogs;
+    double                       score;
+};
+
+class element_matched : public xref<element_matched>
+{
+public:
+    element_matched(shared_ptr<element> e, double s) :
+        elm(e),
+        score(s)
+    {
+    }
+
+    shared_ptr<element>    elm;
+    double                 score;
 };
 
 }

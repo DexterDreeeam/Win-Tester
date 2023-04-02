@@ -5,8 +5,6 @@
 #include <dxgi1_4.h>
 #include <tchar.h>
 
-#include "loop.hpp"
-
 #ifdef _DEBUG
 #define DX12_ENABLE_DEBUG_LAYER
 #endif
@@ -50,23 +48,29 @@ void WaitForLastSubmittedFrame();
 FrameContext* WaitForNextFrameResources();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-bool SlimLoop();
-void SlimLoopStart();
 bool GuiLoop(ImGuiWindowFlags window_flags, bool& done);
+HINSTANCE g_hIns;
 
 // Main code
+#ifdef _DEBUG
+int main(
+#else
 int WinMain(
+#endif
     HINSTANCE hInstance,
     HINSTANCE hPrevInstance,
     LPSTR     lpCmdLine,
-    int       nShowCmd)
+    int       nShowCmd
+)
 {
+    g_hIns = hInstance;
+
     // Create application window
     //ImGui_ImplWin32_EnableDpiAwareness();
-    WNDCLASSEXW wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, L"SlimWinClass", NULL };
+    WNDCLASSEXW wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, L"WinTesterClass", NULL };
     ::RegisterClassExW(&wc);
     HWND hwnd = ::CreateWindowW(
-        wc.lpszClassName, L"Slim-Auto", WS_OVERLAPPED,
+        wc.lpszClassName, L"WinTester", WS_OVERLAPPED,
         100, 100, 640, 640, NULL, NULL, wc.hInstance, NULL);
 
     // Initialize Direct3D
@@ -114,8 +118,6 @@ int WinMain(
     window_flags |= ImGuiWindowFlags_UnsavedDocument;
 
     // Main loop
-    SlimLoopStart();
-
     bool done = false;
     while (!done)
     {
@@ -131,8 +133,6 @@ int WinMain(
         }
         if (done)
             break;
-
-        // SlimLoop();
 
         // Start the Dear ImGui frame
         ImGui_ImplDX12_NewFrame();

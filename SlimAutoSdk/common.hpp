@@ -1,6 +1,7 @@
 #pragma once
 
 #include <windows.h>
+#include <gdiplus.h>
 #include <UIAutomation.h>
 #include <UIAutomationClient.h>
 
@@ -18,6 +19,8 @@
 #include <fstream>
 #include <locale>
 #include <math.h>
+#include <chrono>
+#include <future>
 
 using namespace std;
 
@@ -29,6 +32,8 @@ using namespace std;
 #define Tell(e)         { if (FAILED(hr)) { throw e; } }
 #define Fail(ret,log)   { if (FAILED(hr)) { log; return ret; } }
 #define Rels(ptr)       { if (ptr) { ptr->Release(); ptr = nullptr; } }
+
+const bool CacheElement = true;
 
 template<typename Ty>
 class xref
@@ -53,3 +58,8 @@ protected:
 };
 
 using guard = lock_guard<mutex>;
+
+inline bool HasWinTesterStr(const string& name)
+{
+    return name.find("WinTester") != string::npos;
+}

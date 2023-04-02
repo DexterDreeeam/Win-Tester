@@ -21,7 +21,7 @@ public:
     friend struct iter;
 
 public:
-    element(IUIAutomationElement* e, int prnt_idx = -1, int depth = -1);
+    element(IUIAutomationElement* e, int depth, int prnt_idx = -1);
 
     element(const element& rhs) = delete;
 
@@ -67,10 +67,6 @@ public:
 
     string FriendlyIdentifier() const;
 
-    void Matching(
-        const vector<element_stack>& es, int es_end, shared_ptr<element> self,
-        double score, vector<pair<shared_ptr<element>, double>>& rst);
-
     bool Act(action_type actionType);
 
     bool Hover();
@@ -102,6 +98,7 @@ public:
 private:
     IUIAutomationElement*        _uia_e;
     vector<shared_ptr<element>>  _subs;
+    bool                         _subs_loaded;
 };
 
 template<typename Fn>

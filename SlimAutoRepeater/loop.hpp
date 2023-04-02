@@ -3,6 +3,19 @@
 #include "common.hpp"
 #include "platform/platform.hpp"
 
+enum GlobalState
+{
+    IDLE,
+
+    IDLE_TO_RUNNING,
+    RUNNING_TO_IDLE,
+    RUNNING,
+
+    IDLE_TO_RECORDING,
+    RECORDING_TO_IDLE,
+    RECORDING,
+};
+
 struct GlobalInfo
 {
     static GlobalInfo* I()
@@ -12,13 +25,26 @@ struct GlobalInfo
     }
 
     GlobalInfo() :
-        recording(false),
+        state(GlobalState::IDLE),
+        highlight_frame(false),
+        capture_desktop(false),
+        console_window(false),
+        app_to_launch(""),
         point(),
-        chain(make_shared<slim::element_chain>())
+        chain(nullptr)
     {
     }
 
-    static const vector<string>& Consoles()
+    bool Change(GlobalState from, GlobalState to)
+    {
+        if (InterlockedCompareExchange((LONG*)&state, (LONG)to, (LONG)from) == (LONG)from)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    static const vector<string> Consoles()
     {
         return slim::platform::I()->Consoles();
     }
@@ -28,17 +54,17 @@ struct GlobalInfo
         slim::platform::I()->ClearConsole();
     }
 
-    bool recording = false;
-    bool running = false;
-    bool console_window = false;
+    volatile GlobalState state;
+    bool highlight_frame;
+    bool capture_desktop;
+    bool console_window;
+
+    char app_to_launch[256];
 
     slim::point point;
     shared_ptr<slim::element_chain> chain;
 };
 
-namespace slim
-{
-
-bool SlimLoop();
-
-}
+bool SlimCursorUpdate();
+bool SlimLoop(bool draw = true);
+bool SlimLoopTrigger();

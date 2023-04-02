@@ -13,41 +13,61 @@ static char const InputKeys[] =
     ' ', '\b',
 };
 
-class recorder
+class recorder : public xref<recorder>
 {
 public:
     recorder() :
         _mouse_hk(nullptr),
         _key_hk(nullptr),
-        _actions()
+        _actions(),
+        _thrd(),
+        _stop(false),
+        _execute_mtx()
     {
     }
 
     ~recorder();
 
-    static void StartRecord()
+    static bool HasCases()
     {
-        if (_ins)
+        auto ins = _ins;
+        return ins && ins->_actions._va.size() > 0;
+    }
+
+    static bool Start()
+    {
+        if (GlobalInfo::I()->Change(IDLE, IDLE_TO_RECORDING))
         {
-            _ins = nullptr;
+            _ins = xref<recorder>::x();
+            return _ins->_Start();
         }
-        _ins = make_shared<recorder>();
-        _ins->_StartRecord();
+        else
+        {
+            return false;
+        }
     }
 
-    static void StopRecord()
+    static bool Stop()
     {
-        _ins->_StopRecord();
+        auto ins = _ins;
+        if (ins)
+        {
+            ins->_Stop();
+            return true;
+        }
+        return false;
     }
 
-    static void Loop();
+    static bool Loop();
+
+    static bool LaunchApp();
 
     static string Report();
 
 private:
-    void _StartRecord();
+    bool _Start();
 
-    void _StopRecord();
+    bool _Stop();
 
 public:
     static LRESULT __stdcall _HookMouseCb(int nCode, WPARAM wParam, LPARAM lParam);
@@ -63,6 +83,9 @@ private:
     HHOOK             _mouse_hk;
     HHOOK             _key_hk;
     action_set        _actions;
+    thread            _thrd;
+    bool              _stop;
+    mutex             _execute_mtx;
 };
 
 __declspec(selectany) shared_ptr<recorder> recorder::_ins = nullptr;

@@ -5,9 +5,10 @@
 namespace slim
 {
 
-element::element(IUIAutomationElement* e, int prnt_idx, int depth) :
+element::element(IUIAutomationElement* e, int depth, int prnt_idx) :
     _uia_e(e),
     _subs(),
+    _subs_loaded(false),
     _parent_idx(prnt_idx),
     _depth(depth),
     _area(),
@@ -29,33 +30,40 @@ void element::_LoadProperty()
     }
 
     HRESULT hr;
+    RECT rc;
     BSTR bstr;
     //VARIANT var;
     CONTROLTYPEID ct;
     BOOL bl;
 
-    hr = _uia_e->get_CachedName(&bstr);
+    hr = CacheElement ? _uia_e->get_CachedBoundingRectangle(&rc) : _uia_e->get_CurrentBoundingRectangle(&rc);
+    if (SUCCEEDED(hr))
+    {
+        _area = area(rc);
+    }
+
+    hr = CacheElement ? _uia_e->get_CachedName(&bstr) : _uia_e->get_CurrentName(&bstr);
     if (SUCCEEDED(hr))
     {
         _name = ToString(bstr);
         SysFreeString(bstr);
     }
 
-    hr = _uia_e->get_CachedAutomationId(&bstr);
+    hr = CacheElement ? _uia_e->get_CachedAutomationId(&bstr) : _uia_e->get_CurrentAutomationId(&bstr);
     if (SUCCEEDED(hr))
     {
         _auto_id = ToString(bstr);
         SysFreeString(bstr);
     }
 
-    hr = _uia_e->get_CachedLocalizedControlType(&bstr);
+    hr = CacheElement ? _uia_e->get_CachedLocalizedControlType(&bstr) : _uia_e->get_CurrentLocalizedControlType(&bstr);
     if (SUCCEEDED(hr))
     {
         _control_str = ToString(bstr);
         SysFreeString(bstr);
     }
 
-    hr = _uia_e->get_CachedControlType(&ct);
+    hr = CacheElement ? _uia_e->get_CachedControlType(&ct) : _uia_e->get_CurrentControlType(&ct);
     if (SUCCEEDED(hr))
     {
         _control = ct;
@@ -67,7 +75,7 @@ void element::_LoadProperty()
     if (SUCCEEDED(hr))
     {
         bl = FALSE;
-        hr = e9->get_CachedIsDialog(&bl);
+        hr = CacheElement ? e9->get_CachedIsDialog(&bl) : e9->get_CurrentIsDialog(&bl);
         if (SUCCEEDED(hr) && bl)
         {
             _dialog = true;
@@ -77,7 +85,7 @@ void element::_LoadProperty()
 
 void element::LoadSub(bool recur)
 {
-    if (Invalid() || _subs.size() > 0)
+    if (Invalid() || _subs.size() > 0 || _subs_loaded)
     {
         return;
     }
@@ -85,7 +93,9 @@ void element::LoadSub(bool recur)
     HRESULT hr;
     IUIAutomationElementArray* arr;
 
-    hr = _uia_e->FindAllBuildCache(TreeScope_Children, platform::I()->_con, platform::I()->_request, &arr);
+    hr = CacheElement ?
+        _uia_e->FindAllBuildCache(TreeScope_Children, platform::I()->_con, platform::I()->_request, &arr) :
+        _uia_e->FindAll(TreeScope_Children, platform::I()->_con, &arr);
     Fail(, "_uia_e->FindAllBuildCache(TreeScope_Children, platform::I()->_con, platform::I()->_request, &arr)");
     escape ef = [=]() mutable { arr->Release(); };
 
@@ -105,6 +115,8 @@ void element::LoadSub(bool recur)
         }
         _subs.push_back(r_c);
     }
+
+    _subs_loaded = true;
 }
 
 double element::InteractGrade(point p)
@@ -122,9 +134,9 @@ double element::InteractGrade(point p)
     double areaSqr4 = sqrt(sqrt(areaSz));
 
     // g: 1 ~ 20
-    // areaSqr: 5 ~ 20
+    // areaSqr4: 5 ~ 20
     double g = double(_depth) + 1.0;
-    return g / areaSz;
+    return g / areaSqr4;
 }
 
 string element::Identifier() const
@@ -146,52 +158,6 @@ string element::FriendlyIdentifier() const
     id += "<<" + _auto_id + ">>";
     id += " " + _area.stringify();
     return id;
-}
-
-void element::Matching(
-    const vector<element_stack>& es, int es_end, shared_ptr<element> self,
-    double score, vector<pair<shared_ptr<element>, double>>& rst)
-{
-    if (es_end < 0)
-    {
-        return;
-    }
-
-    double score_inc = 0;
-    auto& stack = es[es_end];
-
-    if (stack.automation_id != _auto_id || stack.control_type != _control)
-    {
-        return;
-    }
-
-    // max 2.0
-    double lcss = (double)LCSS(stack.element_name, _name);
-    lcss = max(lcss, 5);
-    if (lcss > 0.1)
-    {
-        int len1 = (int)stack.element_name.size();
-        int len2 = (int)_name.size();
-        lcss *= (min(len1, len2)) / (max(len1, len2) + 0.1);
-    }
-    score_inc += lcss * 0.4;
-
-    // max 1.5
-    int idx_diff = abs(stack.parent_index - _parent_idx);
-    score_inc += (5 - max(idx_diff, 5)) * 0.3;
-
-    double score_new = score + score_inc;
-    if (es_end == 0)
-    {
-        rst.push_back({ self, score_new });
-        return;
-    }
-
-    for (int i = 0; i < SubCount(); ++i)
-    {
-        auto s = Sub(i);
-        s->Matching(es, es_end - 1, s, score_new, rst);
-    }
 }
 
 bool element::Act(action_type actionType)
@@ -231,6 +197,7 @@ bool element::Envoke()
 {
     // always use physical button
     return Envoke_();
+
     //HRESULT hr;
     //IUnknown* pattern;
     //hr = _elm->GetCurrentPattern(UIA_InvokePatternId, &pattern);

@@ -18,7 +18,7 @@ platform::platform() :
     hr = CoInitialize(NULL);
     Tell("CoInitialize(NULL) error")
 
-    hr = CoCreateInstance(__uuidof(CUIAutomation8), NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&_uia));
+    hr = CoCreateInstance(__uuidof(CUIAutomation), NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&_uia));
     Tell("CoCreateInstance(__uuidof(CUIAutomation8), NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&_ctx))error");
 
     hr = _uia->CreateTrueCondition(&_con);
@@ -66,7 +66,18 @@ WndInfo platform::GetWndInfo(HWND wnd)
     return ret;
 }
 
-BOOL CALLBACK _EnumWindowsCb(HWND wnd, LPARAM par)
+WndInfo platform::GetCurrentWndInfo()
+{
+    auto hwnd = GetForegroundWindow();
+    if (!hwnd)
+    {
+        return WndInfo();
+    }
+
+    return GetWndInfo(hwnd);
+}
+
+BOOL CALLBACK platform::_EnumWindowsCb(HWND wnd, LPARAM par)
 {
     auto info = platform::I()->GetWndInfo(wnd);
     I()->_desktop_wnds[info.cls].push_back(info);
@@ -94,39 +105,36 @@ vector<WndInfo> platform::GetWnds()
     return ret;
 }
 
-vector<WndInfo> platform::GetWnds(const string& cls)
+vector<WndInfo> platform::GetWnds(const WndInfo& info)
 {
     guard __g(Mutex("_desktop_wnds"));
-    return I()->_desktop_wnds[cls];
+    return I()->_desktop_wnds[info.cls];
 }
 
-struct elementSt
-{
-    shared_ptr<slim::element>  elm;
-    int                        parent;
-    int                        dialogs;
-};
-
-static void _PermuteElementTree(vector<elementSt>& candidates)
+void platform::_PermuteElementTree(vector<TreeElementProxy>& candidates)
 {
     int next = 0;
     while (next < candidates.size())
     {
-        auto nest = candidates[next];
-        for (int i = 0; i < nest.elm->SubCount(); ++i)
+        auto proxy = candidates[next];
+        proxy.elm->LoadSub(false);
+        for (int i = 0; i < proxy.elm->SubCount(); ++i)
         {
-            nest.elm->LoadSub(false);
-            auto s = nest.elm->Sub(i);
-            candidates.push_back({ s, next, nest.dialogs + (s->_dialog ? 1 : 0) });
+            auto s = proxy.elm->Sub(i);
+            if (HasWinTesterStr(s->_name))
+            {
+                continue;
+            }
+            candidates.push_back({ s, next, proxy.dialogs + (s->_dialog ? 1 : 0) });
         }
         ++next;
     }
 }
 
-void _GetElementStacks(shared_ptr<element> root, point p, vector<shared_ptr<element>>& ve)
+void platform::_GetElementStacks(shared_ptr<element> root, point p, vector<shared_ptr<element>>& ve)
 {
     //HRESULT hr;
-    vector<elementSt> candidates = {{ root, -1, 0 }};
+    vector<TreeElementProxy> candidates = {{ root, -1, 0 }};
     _PermuteElementTree(candidates);
 
     double maxGrade = -1.0;
@@ -168,12 +176,19 @@ shared_ptr<element_chain> platform::GetElementChainInActiveWindow(point p)
         return nullptr;
     }
 
-    hr = I()->_uia->ElementFromHandleBuildCache(wnd, I()->_request, &uia_e);
+    auto info = GetWndInfo(wnd);
+    if (HasWinTesterStr(info.cls) || HasWinTesterStr(info.win))
+    {
+        return nullptr;
+    }
+
+    hr = CacheElement ?
+        I()->_uia->ElementFromHandleBuildCache(wnd, I()->_request, &uia_e) :
+        I()->_uia->ElementFromHandle(wnd, &uia_e);
     Fail(nullptr, "I()->_uia->ElementFromHandleBuildCache(wnd, I()->_request, &uia_e) fail");
 
     vector<shared_ptr<element>> ve;
-    _GetElementStacks(xref<element>::x(uia_e), p, ve);
-
+    _GetElementStacks(xref<element>::x(uia_e, 0, -1), p, ve);
     return xref<element_chain>::x(GetWndInfo(wnd), ve);
 }
 
@@ -182,31 +197,29 @@ shared_ptr<element_chain> platform::GetElementChainInDesktop(point p)
     HRESULT hr;
     IUIAutomationElement* uia_e;
 
-    hr = I()->_uia->GetRootElementBuildCache(I()->_request, &uia_e);
+    hr = CacheElement ?
+        I()->_uia->GetRootElementBuildCache(I()->_request, &uia_e) :
+        I()->_uia->GetRootElement(&uia_e);
     Fail(nullptr, "I()->_uia->GetRootElementBuildCache(I()->_request, &uia_e) fail");
 
     vector<shared_ptr<element>> ve;
-    _GetElementStacks(xref<element>::x(uia_e, -1, 0), p, ve);
+    _GetElementStacks(xref<element>::x(uia_e, 0, -1), p, ve);
 
     return xref<element_chain>::x(WndInfo(), ve);
 }
 
-element_match _FindElement(shared_ptr<element> self, double score, const vector<element_stack>& es, int es_len = -1)
+shared_ptr<element_matched> platform::_FindElement(shared_ptr<element> self, const element_searching& searching)
 {
-    if (es_len == -1)
+    if (searching.ess_len < 1)
     {
-        es_len = es.size();
-    }
-    if (es_len < 1)
-    {
-        return {};
+        return nullptr;
     }
 
     double score_inc = 0;
-    const auto& stack = es[es_len - 1];
+    const auto& stack = searching.ess[searching.ess_len - 1];
     if (stack.automation_id != self->_auto_id || stack.control_type != self->_control)
     {
-        return {};
+        return nullptr;
     }
 
     // max 2.0
@@ -224,45 +237,67 @@ element_match _FindElement(shared_ptr<element> self, double score, const vector<
     int idx_diff = abs(stack.parent_index - self->_parent_idx);
     score_inc += (5 - max(idx_diff, 5)) * 0.3;
 
-    double score_new = score + score_inc;
-    if (es_len == 1)
+    if (searching.ess_len == 1)
     {
-        rst.push_back({ self, score_new });
-        return;
+        return xref<element_matched>::x(self, searching.score + score_inc);
     }
 
-    for (int i = 0; i < SubCount(); ++i)
+    element_searching next_searching = element_searching(searching);
+    next_searching.ess_len--;
+    next_searching.dialogs += self->_dialog ? 1 : 0;
+    next_searching.score += score_inc;
+
+    shared_ptr<element_matched> rst = nullptr;
+    self->LoadSub(false);
+    for (int i = 0; i < self->SubCount(); ++i)
     {
-        auto s = Sub(i);
-        s->Matching(es, es_end - 1, s, score_new, rst);
+        auto s = self->Sub(i);
+        if (HasWinTesterStr(s->_name))
+        {
+            continue;
+        }
+        auto m = _FindElement(s, next_searching);
+        if (m)
+        {
+            rst = !rst ? m : m->score > rst->score ? m : rst;
+        }
+    }
+    return rst;
+}
+
+shared_ptr<element_matched> platform::FindElementInWindow(WndInfo& wnd, const vector<element_stack>& ess)
+{
+    HRESULT hr;
+    IUIAutomationElement* uia_e;
+
+    if (HasWinTesterStr(wnd.cls) || HasWinTesterStr(wnd.win))
+    {
+        return nullptr;
     }
 
-    return {};
-}
-
-element_match platform::FindElementInWindow(WndInfo& wnd_info, vector<element_stack>& ess)
-{
-    HRESULT hr;
-    HWND wnd;
-    IUIAutomationElement* uia_e;
-
-    hr = I()->_uia->ElementFromHandleBuildCache(wnd_info.wnd, I()->_request, &uia_e);
-    Fail({}, "I()->_uia->ElementFromHandleBuildCache(wnd_info.wnd, I()->_request, &uia_e) fail");
+    hr = CacheElement ?
+        I()->_uia->ElementFromHandleBuildCache(wnd.wnd, I()->_request, &uia_e) :
+        I()->_uia->ElementFromHandle(wnd.wnd, &uia_e);
+    Fail(nullptr, "I()->_uia->ElementFromHandleBuildCache(wnd_info.wnd, I()->_request, &uia_e) fail");
 
     auto root = xref<element>::x(uia_e, -1, 0);
-    return _FindElement(root, 0, ess);
+    element_searching searching(ess);
+    return _FindElement(root, searching);
 }
 
-element_match platform::FindElementInDesktop(vector<element_stack>& ess)
+shared_ptr<element_matched> platform::FindElementInDesktop(const vector<element_stack>& ess)
 {
     HRESULT hr;
     IUIAutomationElement* uia_e;
 
-    hr = I()->_uia->GetRootElementBuildCache(I()->_request, &uia_e);
-    Fail({}, "I()->_uia->GetRootElementBuildCache(I()->_request, &uia_e) fail");
+    hr = CacheElement ?
+        I()->_uia->GetRootElementBuildCache(I()->_request, &uia_e) :
+        I()->_uia->GetRootElement(&uia_e);
+    Fail(nullptr, "I()->_uia->GetRootElementBuildCache(I()->_request, &uia_e) fail");
 
     auto root = xref<element>::x(uia_e, -1, 0);
-    return _FindElement(root, ess, ess.size());
+    element_searching searching(ess);
+    return _FindElement(root, searching);
 }
 
 void platform::Test(point p)

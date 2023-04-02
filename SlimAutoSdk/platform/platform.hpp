@@ -12,6 +12,13 @@ class element;
 class element_chain;
 class action;
 
+struct TreeElementProxy
+{
+    shared_ptr<slim::element>  elm;
+    int                        parent;
+    int                        dialogs;
+};
+
 class platform : public xref<platform>
 {
     friend class element;
@@ -35,19 +42,21 @@ public:
 
     static WndInfo GetWndInfo(HWND wnd);
 
+    static WndInfo GetCurrentWndInfo();
+
     static void UpdateDesktopWnds();
 
     static vector<WndInfo> GetWnds();
 
-    static vector<WndInfo> GetWnds(const string& cls);
+    static vector<WndInfo> GetWnds(const WndInfo& info);
 
     static shared_ptr<element_chain> GetElementChainInActiveWindow(point p);
 
     static shared_ptr<element_chain> GetElementChainInDesktop(point p);
 
-    static element_match FindElementInWindow(WndInfo& wnd_info, vector<element_stack>& ess);
+    static shared_ptr<element_matched> FindElementInWindow(WndInfo& wnd, const vector<element_stack>& ess);
 
-    static element_match FindElementInDesktop(vector<element_stack>& ess);
+    static shared_ptr<element_matched> FindElementInDesktop(const vector<element_stack>& ess);
 
     static void Test(point p);
 
@@ -56,6 +65,15 @@ public:
     static void Console(const string& c);
 
     static void ClearConsole();
+
+private:
+    static BOOL CALLBACK _EnumWindowsCb(HWND wnd, LPARAM par);
+
+    static void _PermuteElementTree(vector<TreeElementProxy>& candidates);
+
+    static void _GetElementStacks(shared_ptr<element> root, point p, vector<shared_ptr<element>>& ve);
+
+    static shared_ptr<element_matched> _FindElement(shared_ptr<element> self, const element_searching& searching);
 
 private:
     static shared_ptr<platform>   _ins;

@@ -1,5 +1,9 @@
 #include "loop.hpp"
 #include "function/recorder.hpp"
+#include "function/runner.hpp"
+#include "platform/element.hpp"
+#include "platform/element_chain.hpp"
+#include "utils/draw.hpp"
 
 void Dbg(shared_ptr<slim::element> root)
 {
@@ -9,35 +13,67 @@ void Dbg(shared_ptr<slim::element> root)
         root,
         [&](auto e)
         {
-            e->LoadProperty();
             string space = "";
-            for (int i = 0; i < e->Depth(); ++i)
+            for (int i = 0; i < e->_depth; ++i)
             {
                 space += "  ";
             }
             l.w(space);
             l.w(e->Identifier());
-            l.w("-[" + to_string(e->Area().left) + ", " + to_string(e->Area().right) + "]");
-            l.w("-[" + to_string(e->Area().top) + ", " + to_string(e->Area().bottom) + "]");
+            l.w("-[" + to_string(e->_area.left) + ", " + to_string(e->_area.right) + "]");
+            l.w("-[" + to_string(e->_area.top) + ", " + to_string(e->_area.bottom) + "]");
             l.w_endl();
         });
 }
 
-bool SlimLoop()
+bool SlimCursorUpdate()
+{
+    POINT pt;
+    GetCursorPos(&pt);
+    auto cursor = slim::point(pt);
+    GlobalInfo::I()->point = cursor;
+    return true;
+}
+
+DWORD WINAPI _LoopInternal(LPVOID lpParam)
 {
     try
     {
-        POINT pt;
-        GetCursorPos(&pt);
+        GlobalInfo::I()->chain = GlobalInfo::I()->capture_desktop ?
+            slim::platform::GetElementChainInDesktop(GlobalInfo::I()->point) :
+            slim::platform::GetElementChainInActiveWindow(GlobalInfo::I()->point);
+    }
+    catch (...)
+    {
+        // todo
+    }
 
-        auto elementChain = slim::platform::I()->ElementChainByPoint(slim::point(pt));
-        GlobalInfo::I()->chain = elementChain;
-        if (!elementChain)
+    return 0;
+}
+
+bool SlimLoop(bool draw)
+{
+    try
+    {
+        DWORD thrd_id;
+        HANDLE thrd = CreateThread(NULL, 0, _LoopInternal, nullptr, 0, &thrd_id);
+        if (!thrd)
         {
             return false;
         }
+        auto state = WaitForSingleObject(thrd, 8000);
+        if (state == WAIT_TIMEOUT)
+        {
+            TerminateThread(thrd, 0);
+        }
+        CloseHandle(thrd);
 
-        slim::recorder::Loop();
+        auto chain = GlobalInfo::I()->chain;
+        if (chain && draw && GlobalInfo::I()->highlight_frame)
+        {
+            framer::draw(chain->Area());
+        }
+
         return true;
     }
     catch (std::exception& e)
@@ -50,16 +86,27 @@ bool SlimLoop()
         e;
         return false;
     }
+    catch (...)
+    {
+        return false;
+    }
 }
 
-void SlimLoopStart()
+bool SlimLoopTrigger()
 {
-    static std::thread loop;
-    loop = std::thread([]() {
-        CoInitialize(NULL);
-        while (1)
-        {
-            SlimLoop();
-        }
-    });
+    static future<void> _f;
+
+    if (!_f.valid() || _f.wait_for(0ms) == std::future_status::ready)
+    {
+        _f = async(
+            launch::async,
+            []()
+            {
+                SlimLoop();
+            });
+
+        return true;
+    }
+
+    return false;
 }

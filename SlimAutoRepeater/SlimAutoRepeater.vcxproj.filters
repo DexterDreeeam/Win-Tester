@@ -12,6 +12,7 @@
     <ClCompile Include="function\recorder.cpp" />
     <ClCompile Include="function\runner.cpp" />
     <ClCompile Include="loop_gui.cpp" />
+    <ClCompile Include="imgui\imgui_demo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imconfig.h" />

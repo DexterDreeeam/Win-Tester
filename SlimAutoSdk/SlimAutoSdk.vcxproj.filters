@@ -23,5 +23,6 @@
     <ClInclude Include="utils\escape.hpp" />
     <ClInclude Include="platform\element_stack.hpp" />
     <ClInclude Include="platform\area.hpp" />
+    <ClInclude Include="utils\draw.hpp" />
   </ItemGroup>
 </Project>

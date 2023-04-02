@@ -2,6 +2,7 @@
 
 #include "common.hpp"
 #include "identifier.hpp"
+#include "area.hpp"
 
 namespace slim
 {
@@ -14,7 +15,7 @@ class element_chain : public xref<element_chain>
     friend class action;
 
 public:
-    element_chain(WndInfo& wndInfo, const vector<shared_ptr<element>>& ve) :
+    element_chain(const WndInfo& wndInfo, const vector<shared_ptr<element>>& ve) :
         _wnd_info(wndInfo),
         _ve(ve)
     {
@@ -35,6 +36,8 @@ public:
         return _ve.size() > 0;
     }
 
+    area Area() const;
+
     string Identifier() const;
 
     string FriendlyIdentifier() const;
@@ -50,7 +53,7 @@ public:
     shared_ptr<action> Test();
 
 private:
-    WndInfo&                     _wnd_info;
+    WndInfo                      _wnd_info;
     vector<shared_ptr<element>>  _ve; // from child to root
 };
 
