@@ -28,11 +28,15 @@ public:
 
     ~recorder();
 
+    static int GetWaitMs();
+
     static bool HasCases()
     {
         auto ins = _ins;
         return ins && ins->_actions._va.size() > 0;
     }
+
+    static bool Export();
 
     static bool Start()
     {
@@ -52,15 +56,24 @@ public:
         auto ins = _ins;
         if (ins)
         {
-            ins->_Stop();
-            return true;
+            if (ins->_Stop())
+            {
+                GlobalInfo::I()->record_finished = true;
+                return true;
+            }
         }
         return false;
     }
 
-    static bool Loop();
+    static bool Iterate();
 
-    static bool LaunchApp();
+    static bool LaunchAppPath();
+
+    static bool LaunchAppId();
+
+    static bool LoopBegin();
+
+    static bool LoopEnd();
 
     static string Report();
 

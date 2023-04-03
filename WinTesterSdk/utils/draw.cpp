@@ -17,6 +17,7 @@ void framer::draw(slim::area aa)
     {
         return;
     }
+    escape ef_mtx = [&]() mutable { mtx.unlock(); };
 
     if (!hwnd)
     {
@@ -37,10 +38,9 @@ void framer::draw(slim::area aa)
         wndClass.style = CS_HREDRAW | CS_VREDRAW | CS_IME | CS_DBLCLKS;
         RegisterClassEx(&wndClass);
         hwnd = CreateWindowEx(
-            WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST, szAppName, szAppName, WS_POPUP,
+            WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_TOOLWINDOW, szAppName, szAppName, WS_POPUP | WS_DISABLED,
             0, 0, 0, 0, NULL, NULL, g_hIns, NULL);
 
-        ShowWindow(hwnd, SW_SHOW);
         UpdateWindow(hwnd);
 
         if (g_data == NULL)
@@ -62,7 +62,6 @@ void framer::draw(slim::area aa)
     }
 
     update(aa);
-    mtx.unlock();
 }
 
 void framer::update(slim::area aa)
@@ -72,8 +71,15 @@ void framer::update(slim::area aa)
     {
         return;
     }
-
     last = aa;
+
+    if (aa.left > aa.right)
+    {
+        // hide
+        ShowWindow(hwnd, SW_HIDE);
+        return;
+    }
+
     int width = min(maxWidth, aa.right - aa.left);
     int height = min(maxHeight, aa.bottom - aa.top);
 
@@ -103,4 +109,5 @@ void framer::update(slim::area aa)
     SIZE sizeWnd = { width, height };
     UpdateLayeredWindow(hwnd, hdc, &pDst, &sizeWnd, hcdc, &pSrc, NULL, &blend, ULW_ALPHA);
     ReleaseDC(hwnd, hdc);
+    ShowWindow(hwnd, SW_SHOW);
 }

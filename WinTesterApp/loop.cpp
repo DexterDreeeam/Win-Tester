@@ -40,8 +40,8 @@ DWORD WINAPI _LoopInternal(LPVOID lpParam)
     try
     {
         GlobalInfo::I()->chain = GlobalInfo::I()->capture_desktop ?
-            slim::platform::GetElementChainInDesktop(GlobalInfo::I()->point) :
-            slim::platform::GetElementChainInActiveWindow(GlobalInfo::I()->point);
+            slim::platform::GetElementChainInDesktop(GlobalInfo::I()->point, GlobalInfo::I()->fast_mode) :
+            slim::platform::GetElementChainInActiveWindow(GlobalInfo::I()->point, GlobalInfo::I()->fast_mode);
     }
     catch (...)
     {
@@ -73,6 +73,10 @@ bool SlimLoop(bool draw)
         {
             framer::draw(chain->Area());
         }
+        else
+        {
+            framer::draw({ 1, -1, 1, -1 });
+        }
 
         return true;
     }
@@ -92,11 +96,16 @@ bool SlimLoop(bool draw)
     }
 }
 
-bool SlimLoopTrigger()
+bool SlimLoopTrigger(bool end_sync)
 {
     static future<void> _f;
 
-    if (!_f.valid() || _f.wait_for(0ms) == std::future_status::ready)
+    if (end_sync && _f.valid())
+    {
+        return _f.wait_for(60000ms) == future_status::ready;
+    }
+
+    if (!_f.valid() || _f.wait_for(0ms) == future_status::ready)
     {
         _f = async(
             launch::async,

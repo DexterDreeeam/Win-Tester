@@ -1,6 +1,7 @@
 #include "loop.hpp"
 #include "recorder.hpp"
 #include "platform/element_chain.hpp"
+#include "utils/executor.hpp"
 
 #ifdef _DEBUG
     #define TestMode 1
@@ -15,7 +16,52 @@ recorder::~recorder()
 {
 }
 
-bool recorder::Loop()
+int recorder::GetWaitMs()
+{
+    string s = GlobalInfo::I()->action_wait_for_ms;
+    int num = atoi(s.c_str());
+    if (num >= 0)
+    {
+        return num;
+    }
+    return GlobalInfo::I()->ResetWaitMs();
+}
+
+bool recorder::Export()
+{
+    WCHAR szFileName[MAX_PATH] = L"";
+    OPENFILENAME ofn;
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFilter = L"Json Files\0*.json\0";
+    ofn.lpstrFile = szFileName;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+    ofn.lpstrDefExt = L"json";
+
+    if (!GetSaveFileNameW(&ofn))
+    {
+        return false;
+    }
+
+    string s = Report();
+    auto hF = CreateFileW(
+        ofn.lpstrFile, GENERIC_WRITE, 0, NULL,
+        CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hF == INVALID_HANDLE_VALUE)
+    {
+        return false;
+    }
+
+    DWORD dwBytesWritten = 0;
+    WriteFile(hF, s.c_str(), (DWORD)s.size(), &dwBytesWritten, NULL);
+    CloseHandle(hF);
+
+    return true;
+}
+
+bool recorder::Iterate()
 {
     SlimLoop();
 
@@ -34,19 +80,19 @@ bool recorder::Loop()
     shared_ptr<action> ac = nullptr;
     if (GetAsyncKeyState(VK_RCONTROL) && !isWinTester)
     {
-        ac = chain->Hover();
+        ac = chain->Hover(GetWaitMs());
     }
     else if (GetAsyncKeyState(VK_RSHIFT) && !isWinTester)
     {
-        ac = chain->Envoke();
+        ac = chain->Envoke(GetWaitMs());
     }
     else if (GetAsyncKeyState(VK_RMENU) && !isWinTester)
     {
-        ac = chain->Menu();
+        ac = chain->Menu(GetWaitMs());
     }
     else if ((bool)TestMode && GetAsyncKeyState(VK_F10) && !isWinTester)
     {
-        ac = chain->Test();
+        ac = chain->Test(GetWaitMs());
     }
     else
     {
@@ -54,7 +100,7 @@ bool recorder::Loop()
         {
             if (GetAsyncKeyState(c) && !isWinTester)
             {
-                ac = chain->Input(c);
+                ac = chain->Input(c, GetWaitMs());
                 break;
             }
         }
@@ -69,7 +115,7 @@ bool recorder::Loop()
     return true;
 }
 
-bool recorder::LaunchApp()
+bool recorder::LaunchAppPath()
 {
     auto me = _ins;
     if (!me)
@@ -78,18 +124,112 @@ bool recorder::LaunchApp()
     }
     guard __g(me->_execute_mtx);
 
-    string str = GlobalInfo::I()->app_to_launch;
-    auto hIns = ShellExecuteA(NULL, "open", str.c_str(), NULL, NULL, SW_SHOWNORMAL);
-    if ((LONGLONG)hIns > 32)
+    string path = GlobalInfo::I()->app_to_launch;
+    if (LaunchShellFilePath(path))
     {
-        auto ac = xref<action>::x();
-        ac->type = APP_LAUNCH;
-        ac->AddParameter("path", str);
+        auto ac = xref<action>::x(GetWaitMs());
+        ac->type = APP_LAUNCH_PATH;
+        ac->AddParameter("path", path);
         me->_actions.Add(ac);
         return true;
     }
+    return false;
+}
 
+bool recorder::LaunchAppId()
+{
+    auto me = _ins;
+    if (!me)
+    {
+        return false;
+    }
+    guard __g(me->_execute_mtx);
 
+    string appid = GlobalInfo::I()->app_to_launch;
+    if (LaunchShellAppId(appid))
+    {
+        auto ac = xref<action>::x(GetWaitMs());
+        ac->type = APP_LAUNCH_PATH;
+        ac->AddParameter("appid", appid);
+        me->_actions.Add(ac);
+        return true;
+    }
+    return false;
+}
+
+bool recorder::LoopBegin()
+{
+    auto me = _ins;
+    if (!me)
+    {
+        return false;
+    }
+    guard __g(me->_execute_mtx);
+
+    string par = GlobalInfo::I()->record_loop_pars;
+    vector<string> pars;
+    int idx = 0;
+    while (true)
+    {
+        auto found = par.find(",", idx);
+        if (found == string::npos)
+        {
+            break;
+        }
+        pars.push_back(par.substr(idx, found - idx));
+        idx = (int)found + 1;
+    }
+    if (idx < par.size())
+    {
+        pars.push_back(par.substr(idx));
+    }
+
+    bool valid = false;
+    auto ac = xref<action>::x(GetWaitMs());
+    ac->type = LOOP_BEGIN;
+    for (const auto& p : pars)
+    {
+        if (p.ends_with("ms"))
+        {
+            ac->AddParameter("duration", p.substr(0, p.size() - 2));
+            valid = true;
+        }
+        else if (p.ends_with("s"))
+        {
+            ac->AddParameter("duration", p.substr(0, p.size() - 1) + "000");
+            valid = true;
+        }
+        else if (atoi(p.c_str()) > 0)
+        {
+            ac->AddParameter("times", p);
+            valid = true;
+        }
+    }
+    if (!valid)
+    {
+        return false;
+    }
+
+    ++GlobalInfo::I()->record_loop_stack;
+    me->_actions.Add(ac);
+    return true;
+}
+
+bool recorder::LoopEnd()
+{
+    auto me = _ins;
+    if (!me)
+    {
+        return false;
+    }
+    guard __g(me->_execute_mtx);
+
+    auto ac = xref<action>::x(GetWaitMs());
+    ac->type = LOOP_END;
+
+    --GlobalInfo::I()->record_loop_stack;
+    me->_actions.Add(ac);
+    return true;
 }
 
 string recorder::Report()
@@ -121,7 +261,7 @@ bool recorder::_Start()
             {
                 try
                 {
-                    sp->Loop();
+                    sp->Iterate();
                 }
                 catch (...)
                 {
@@ -186,7 +326,7 @@ LRESULT __stdcall recorder::_HookKeyCb(int nCode, WPARAM wParam, LPARAM lParam)
     auto chain = GlobalInfo::I()->chain;
     if (me && chain)
     {
-        action ac;
+        action ac(0);
 
         if (wParam >= 0x41 && wParam <= (0x41 + 'Z' - 'A'))
         {

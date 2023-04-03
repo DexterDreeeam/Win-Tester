@@ -111,12 +111,17 @@ vector<WndInfo> platform::GetWnds(const WndInfo& info)
     return I()->_desktop_wnds[info.cls];
 }
 
-void platform::_PermuteElementTree(vector<TreeElementProxy>& candidates)
+void platform::_PermuteElementTree(vector<TreeElementProxy>& candidates, point p, bool fast)
 {
     int next = 0;
     while (next < candidates.size())
     {
         auto proxy = candidates[next];
+        if (fast && proxy.elm->_area.size() > 0 && !proxy.elm->_area.Inside(p))
+        {
+            ++next;
+            continue;
+        }
         proxy.elm->LoadSub(false);
         for (int i = 0; i < proxy.elm->SubCount(); ++i)
         {
@@ -131,11 +136,11 @@ void platform::_PermuteElementTree(vector<TreeElementProxy>& candidates)
     }
 }
 
-void platform::_GetElementStacks(shared_ptr<element> root, point p, vector<shared_ptr<element>>& ve)
+void platform::_GetElementStacks(shared_ptr<element> root, point p, bool fast, vector<shared_ptr<element>>& ve)
 {
     //HRESULT hr;
     vector<TreeElementProxy> candidates = {{ root, -1, 0 }};
-    _PermuteElementTree(candidates);
+    _PermuteElementTree(candidates, p, fast);
 
     double maxGrade = -1.0;
     int maxElmIdx = -1;
@@ -164,11 +169,11 @@ void platform::_GetElementStacks(shared_ptr<element> root, point p, vector<share
     }
 }
 
-shared_ptr<element_chain> platform::GetElementChainInActiveWindow(point p)
+shared_ptr<element_chain> platform::GetElementChainInActiveWindow(point p, bool fast)
 {
     HRESULT hr;
     HWND wnd;
-    IUIAutomationElement* uia_e;
+    IUIAutomationElement* uia_e = nullptr;
 
     wnd = GetForegroundWindow();
     if (!wnd)
@@ -186,24 +191,32 @@ shared_ptr<element_chain> platform::GetElementChainInActiveWindow(point p)
         I()->_uia->ElementFromHandleBuildCache(wnd, I()->_request, &uia_e) :
         I()->_uia->ElementFromHandle(wnd, &uia_e);
     Fail(nullptr, "I()->_uia->ElementFromHandleBuildCache(wnd, I()->_request, &uia_e) fail");
+    if (!uia_e)
+    {
+        return nullptr;
+    }
 
     vector<shared_ptr<element>> ve;
-    _GetElementStacks(xref<element>::x(uia_e, 0, -1), p, ve);
+    _GetElementStacks(xref<element>::x(uia_e, 0, -1), p, fast, ve);
     return xref<element_chain>::x(GetWndInfo(wnd), ve);
 }
 
-shared_ptr<element_chain> platform::GetElementChainInDesktop(point p)
+shared_ptr<element_chain> platform::GetElementChainInDesktop(point p, bool fast)
 {
     HRESULT hr;
-    IUIAutomationElement* uia_e;
+    IUIAutomationElement* uia_e = nullptr;
 
     hr = CacheElement ?
         I()->_uia->GetRootElementBuildCache(I()->_request, &uia_e) :
         I()->_uia->GetRootElement(&uia_e);
     Fail(nullptr, "I()->_uia->GetRootElementBuildCache(I()->_request, &uia_e) fail");
+    if (!uia_e)
+    {
+        return nullptr;
+    }
 
     vector<shared_ptr<element>> ve;
-    _GetElementStacks(xref<element>::x(uia_e, 0, -1), p, ve);
+    _GetElementStacks(xref<element>::x(uia_e, 0, -1), p, fast, ve);
 
     return xref<element_chain>::x(WndInfo(), ve);
 }
@@ -268,7 +281,7 @@ shared_ptr<element_matched> platform::_FindElement(shared_ptr<element> self, con
 shared_ptr<element_matched> platform::FindElementInWindow(WndInfo& wnd, const vector<element_stack>& ess)
 {
     HRESULT hr;
-    IUIAutomationElement* uia_e;
+    IUIAutomationElement* uia_e = nullptr;
 
     if (HasWinTesterStr(wnd.cls) || HasWinTesterStr(wnd.win))
     {
@@ -279,6 +292,10 @@ shared_ptr<element_matched> platform::FindElementInWindow(WndInfo& wnd, const ve
         I()->_uia->ElementFromHandleBuildCache(wnd.wnd, I()->_request, &uia_e) :
         I()->_uia->ElementFromHandle(wnd.wnd, &uia_e);
     Fail(nullptr, "I()->_uia->ElementFromHandleBuildCache(wnd_info.wnd, I()->_request, &uia_e) fail");
+    if (!uia_e)
+    {
+        return nullptr;
+    }
 
     auto root = xref<element>::x(uia_e, -1, 0);
     element_searching searching(ess);
@@ -288,12 +305,16 @@ shared_ptr<element_matched> platform::FindElementInWindow(WndInfo& wnd, const ve
 shared_ptr<element_matched> platform::FindElementInDesktop(const vector<element_stack>& ess)
 {
     HRESULT hr;
-    IUIAutomationElement* uia_e;
+    IUIAutomationElement* uia_e = nullptr;
 
     hr = CacheElement ?
         I()->_uia->GetRootElementBuildCache(I()->_request, &uia_e) :
         I()->_uia->GetRootElement(&uia_e);
     Fail(nullptr, "I()->_uia->GetRootElementBuildCache(I()->_request, &uia_e) fail");
+    if (!uia_e)
+    {
+        return nullptr;
+    }
 
     auto root = xref<element>::x(uia_e, -1, 0);
     element_searching searching(ess);

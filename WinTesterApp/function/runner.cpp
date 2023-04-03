@@ -4,9 +4,62 @@
 #include "platform/action.hpp"
 #include "platform/element.hpp"
 #include "utils/draw.hpp"
+#include "utils/executor.hpp"
 
 namespace slim
 {
+
+bool runner::OpenToRun()
+{
+    OPENFILENAME ofn;       // common dialog box structure
+    WCHAR szFileName[MAX_PATH] = L"";
+    // HWND hwnd;              // owner window
+    HANDLE hf;              // file handle
+
+    // Initialize OPENFILENAME
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFile = szFileName;
+    // Set lpstrFile[0] to '\0' so that GetOpenFileName does not 
+    // use the contents of szFile to initialize itself.
+    ofn.lpstrFile[0] = '\0';
+    ofn.nMaxFile = sizeof(szFileName);
+    ofn.lpstrFilter = L"Json Files\0*.json\0";
+    ofn.nFilterIndex = 1;
+    ofn.lpstrFileTitle = NULL;
+    ofn.nMaxFileTitle = 0;
+    ofn.lpstrInitialDir = NULL;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+    // Display the Open dialog box.
+    if (!GetOpenFileNameW(&ofn))
+    {
+        return false;
+    }
+
+    hf = CreateFileW(
+        ofn.lpstrFile, GENERIC_READ, 0, NULL,
+        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (hf == INVALID_HANDLE_VALUE)
+    {
+        return false;
+    }
+    escape ef_handle = [=]() mutable { CloseHandle(hf); };
+
+    int buf_sz = 1024 * 1024;
+    char* buf = new char[buf_sz];
+    memset(buf, 0, buf_sz);
+    escape ef_buf = [=]() mutable { delete buf; };
+
+    DWORD bytesRead = 0;
+    if (!ReadFile(hf, buf, buf_sz, &bytesRead, NULL))
+    {
+        return false;
+    }
+    return Run(buf);
+}
 
 bool runner::Run(const string& str)
 {
@@ -74,7 +127,7 @@ bool runner::_RunScope(const vector<shared_ptr<action>>& va, int start, int end)
         }
 
         auto ac = va[idx];
-        if (ac->type == action_type::LOOP_START)
+        if (ac->type == action_type::LOOP_BEGIN)
         {
             // loop start
             int loop_len = _RunLoop(va, idx);
@@ -108,7 +161,7 @@ bool runner::_RunScope(const vector<shared_ptr<action>>& va, int start, int end)
 int runner::_RunLoop(const vector<shared_ptr<action>>& va, int loop_start)
 {
     int idx = loop_start;
-    if (va[idx++]->type != action_type::LOOP_START)
+    if (va[idx++]->type != action_type::LOOP_BEGIN)
     {
         throw nullptr;
     }
@@ -116,7 +169,7 @@ int runner::_RunLoop(const vector<shared_ptr<action>>& va, int loop_start)
     int loops = 1;
     while (idx < va.size())
     {
-        if (va[idx]->type == action_type::LOOP_START)
+        if (va[idx]->type == action_type::LOOP_BEGIN)
         {
             ++loops;
         }
@@ -141,7 +194,7 @@ int runner::_RunLoop(const vector<shared_ptr<action>>& va, int loop_start)
         times = atoi(times_str.c_str());
     }
 
-    string timeout_str = va[loop_start]->parameter["time-out"];
+    string timeout_str = va[loop_start]->parameter["duration"];
     int seconds = -1;
     if (timeout_str.size() > 0)
     {
@@ -158,7 +211,7 @@ int runner::_RunLoop(const vector<shared_ptr<action>>& va, int loop_start)
             return -1;
         }
 
-        if (!_RunScope(va, loop_start + 1, idx))
+        if (!_RunScope(va, loop_start + 1, idx - 1))
         {
             return -1; // fail
         }
@@ -186,8 +239,12 @@ bool runner::_Act(shared_ptr<action> ac)
 
     switch (ac->type)
     {
-    case action_type::APP_LAUNCH:
-        return false;
+
+    case action_type::APP_LAUNCH_PATH:
+        return LaunchShellFilePath(ac->parameter["path"]);
+
+    case action_type::APP_LAUNCH_APPID:
+        return LaunchShellAppId(ac->parameter["appid"]);
 
     case action_type::KEY_INPUT:
         if (ac->parameter["keys"].size() < 1)

@@ -20,17 +20,11 @@ public:
     WndInfo                wnd_info;
     vector<element_stack>  element_stacks;
     int                    wait_time_ms;
+    bool                   optional;
 
-    action() :
-        type(action_type::ACTION_NONE),
-        parameter(),
-        wnd_info(),
-        element_stacks(),
-        wait_time_ms(1000)
-    {
-    }
+    action(int wait);
 
-    action(action_type ty, shared_ptr<element_chain> ec, int wait = 1000);
+    action(action_type ty, shared_ptr<element_chain> ec, int wait);
 
     void AddParameter(const string& key, const string& val)
     {
@@ -81,17 +75,21 @@ public:
             ja.push_back(s.ToString());
         }
         j["element_stacks"] = ja;
-
+        j["wait_time"] = to_string(wait_time_ms);
+        j["optional"] = optional ? "true" : "false";
         return j;
     }
 
     static shared_ptr<action> FromJson(const json& j)
     {
-        auto ac = xref<action>::x();
+        string waitStr = j["wait_time"];
+
+        auto ac = xref<action>::x(atoi(waitStr.c_str()));
         ac->wnd_info.win = j["window"]["name"];
         ac->wnd_info.cls = j["window"]["class"];
         ac->type = StringToType(j["action_type"]);
         ac->parameter = j["parameter"];
+        ac->optional = string(j["optional"]) == "true";
 
         auto es = j["element_stacks"];
         for (int i = 0; i < es.size(); ++i)

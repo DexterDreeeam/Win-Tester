@@ -42,15 +42,15 @@ public:
 
     string FriendlyIdentifier() const;
 
-    shared_ptr<action> Hover(); // cursor hover
+    shared_ptr<action> Hover(int wait); // cursor hover
 
-    shared_ptr<action> Envoke(); // cursor left click
+    shared_ptr<action> Envoke(int wait); // cursor left click
 
-    shared_ptr<action> Menu(); // cursor right click
+    shared_ptr<action> Menu(int wait); // cursor right click
 
-    shared_ptr<action> Input(char k); // input a Key down
+    shared_ptr<action> Input(char k, int wait); // input a Key down
 
-    shared_ptr<action> Test();
+    shared_ptr<action> Test(int wait);
 
 private:
     WndInfo                      _wnd_info;

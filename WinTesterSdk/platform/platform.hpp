@@ -36,6 +36,8 @@ public:
         return Instance();
     }
 
+    static void Release() { _ins = nullptr; }
+
     ~platform();
 
     static mutex& Mutex(const string& name);
@@ -50,9 +52,9 @@ public:
 
     static vector<WndInfo> GetWnds(const WndInfo& info);
 
-    static shared_ptr<element_chain> GetElementChainInActiveWindow(point p);
+    static shared_ptr<element_chain> GetElementChainInActiveWindow(point p, bool fast);
 
-    static shared_ptr<element_chain> GetElementChainInDesktop(point p);
+    static shared_ptr<element_chain> GetElementChainInDesktop(point p, bool fast);
 
     static shared_ptr<element_matched> FindElementInWindow(WndInfo& wnd, const vector<element_stack>& ess);
 
@@ -69,9 +71,9 @@ public:
 private:
     static BOOL CALLBACK _EnumWindowsCb(HWND wnd, LPARAM par);
 
-    static void _PermuteElementTree(vector<TreeElementProxy>& candidates);
+    static void _PermuteElementTree(vector<TreeElementProxy>& candidates, point p, bool fast);
 
-    static void _GetElementStacks(shared_ptr<element> root, point p, vector<shared_ptr<element>>& ve);
+    static void _GetElementStacks(shared_ptr<element> root, point p, bool fast, vector<shared_ptr<element>>& ve);
 
     static shared_ptr<element_matched> _FindElement(shared_ptr<element> self, const element_searching& searching);
 

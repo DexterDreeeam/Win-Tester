@@ -72,7 +72,7 @@ void element::_LoadProperty()
 
     IUIAutomationElement9* e9 = nullptr;
     hr = _uia_e->QueryInterface(&e9);
-    if (SUCCEEDED(hr))
+    if (SUCCEEDED(hr) && e9)
     {
         bl = FALSE;
         hr = CacheElement ? e9->get_CachedIsDialog(&bl) : e9->get_CurrentIsDialog(&bl);
@@ -92,22 +92,29 @@ void element::LoadSub(bool recur)
 
     HRESULT hr;
     IUIAutomationElementArray* arr;
-
     hr = CacheElement ?
         _uia_e->FindAllBuildCache(TreeScope_Children, platform::I()->_con, platform::I()->_request, &arr) :
         _uia_e->FindAll(TreeScope_Children, platform::I()->_con, &arr);
     Fail(, "_uia_e->FindAllBuildCache(TreeScope_Children, platform::I()->_con, platform::I()->_request, &arr)");
-    escape ef = [=]() mutable { arr->Release(); };
+    escape ef = [=]() mutable { if (arr) arr->Release(); };
 
+    if (!arr)
+    {
+        return;
+    }
     int len = 0;
     hr = arr->get_Length(&len);
     Fail(, "arr->get_Length(&len)");
 
     for (int i = 0; i < len; ++i)
     {
-        IUIAutomationElement* c;
+        IUIAutomationElement* c = nullptr;;
         hr = arr->GetElement(i, &c);
         Fail(,"arr->GetElement(i, &c)");
+        if (!c)
+        {
+            continue;
+        }
         auto r_c = xref<element>::x(c, i, _depth == -1 ? -1 : _depth + 1);
         if (recur)
         {

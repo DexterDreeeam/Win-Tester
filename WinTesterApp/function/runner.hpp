@@ -20,6 +20,8 @@ public:
     {
     }
 
+    static bool OpenToRun();
+
     static bool Run(const string& str);
 
     static bool Stop();

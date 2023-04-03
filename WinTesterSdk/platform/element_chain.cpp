@@ -51,13 +51,13 @@ string element_chain::FriendlyIdentifier() const
     return id;
 }
 
-shared_ptr<action> element_chain::Hover()
+shared_ptr<action> element_chain::Hover(int wait)
 {
     if (!_ve.front()->Hover())
     {
         return nullptr;
     }
-    auto ac = xref<action>::x();
+    auto ac = xref<action>::x(wait);
     ac->type = action_type::HOVER;
     ac->wnd_info = _wnd_info;
     for (auto e : _ve)
@@ -67,13 +67,13 @@ shared_ptr<action> element_chain::Hover()
     return ac;
 }
 
-shared_ptr<action> element_chain::Envoke()
+shared_ptr<action> element_chain::Envoke(int wait)
 {
     if (!_ve.front()->Envoke())
     {
         return nullptr;
     }
-    auto ac = xref<action>::x();
+    auto ac = xref<action>::x(wait);
     ac->type = action_type::LEFT_CLICK;
     ac->wnd_info = _wnd_info;
     for (auto e : _ve)
@@ -83,13 +83,13 @@ shared_ptr<action> element_chain::Envoke()
     return ac;
 }
 
-shared_ptr<action> element_chain::Menu()
+shared_ptr<action> element_chain::Menu(int wait)
 {
     if (!_ve.front()->Menu())
     {
         return nullptr;
     }
-    auto ac = xref<action>::x();
+    auto ac = xref<action>::x(wait);
     ac->type = action_type::RIGHT_CLICK;
     ac->wnd_info = _wnd_info;
     for (auto e : _ve)
@@ -99,22 +99,22 @@ shared_ptr<action> element_chain::Menu()
     return ac;
 }
 
-shared_ptr<action> element_chain::Input(char k)
+shared_ptr<action> element_chain::Input(char k, int wait)
 {
-    auto ac = xref<action>::x();
+    auto ac = xref<action>::x(wait);
     ac->type = action_type::KEY_INPUT;
     ac->wnd_info = _wnd_info;
     ac->AddParameter("keys", string({ k }));
     return ac;
 }
 
-shared_ptr<action> element_chain::Test()
+shared_ptr<action> element_chain::Test(int wait)
 {
     if (!_ve.front()->Test())
     {
         return nullptr;
     }
-    auto ac = xref<action>::x();
+    auto ac = xref<action>::x(wait);
     ac->type = action_type::ACTION_TEST;
     ac->wnd_info = _wnd_info;
     for (auto e : _ve)
