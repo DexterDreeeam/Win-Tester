@@ -2,15 +2,15 @@
 Win-Tester is a **Zero-Code** UI automation test tool in **Windows** platform.  
 Record your test case just as what you did in your desktop and rerun it immediately.  
   
-## Support Platform:
+## Supported Platform:
   - **Windows** only
   
-## Support Movements:
+## Supported Movements:
   - **UI Element Click**
   - **App Launch**
   - **Key Input**
 
-## After Start Recording, You Could:
+## After Starting Recording, You Could:
   - Right-Shift Button as Mouse Left Click
   - Right-Alt Button as Mouse Right Click
   - Right-Control Button as Mouse Hover
