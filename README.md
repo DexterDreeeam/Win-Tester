@@ -10,6 +10,13 @@ Record your test case and rerun it immediately.
   - **App Launch**
   - **Key Input**
 
-![Win-Tester-1](https://user-images.githubusercontent.com/43837899/229508247-c4e50517-db93-4b65-81cc-a890a40265fb.png)
+## After Start Recording, You Could:
+  - Right-Shift Button as Mouse Left Click
+  - Right-Alt Button as Mouse Right Click
+  - Right-Control Button as Mouse Hover
+  - Keyboard Input 'A' to 'Z' and '0' to '9'
 
-![Win-Tester-2](https://user-images.githubusercontent.com/43837899/229508211-809068ad-e3c7-4dc0-b2cd-10f55a742390.png)
+## Tips
+  - Every Operation Has 0.5s Interval Time
+
+<img src="https://user-images.githubusercontent.com/43837899/229508247-c4e50517-db93-4b65-81cc-a890a40265fb.png" width="40%" height="40%"> <img src="https://user-images.githubusercontent.com/43837899/229508211-809068ad-e3c7-4dc0-b2cd-10f55a742390.png" width="40%" height="40%">
