@@ -3,7 +3,7 @@ Win-Tester is a **Zero-Code** UI automation test tool in **Windows** platform.
 Record your test case just as what you did in your desktop and rerun it immediately.  
   
 ## Supported Platform:
-  - **Windows** only
+  - **Windows x86-64** only
   
 ## Supported Movements:
   - **UI Element Click**
