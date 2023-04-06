@@ -149,6 +149,10 @@ bool runner::_RunScope(const vector<shared_ptr<action>>& va, int start, int end)
             {
                 ++idx;
             }
+            else if (ac->optional)
+            {
+                ++idx;
+            }
             else
             {
                 return false;

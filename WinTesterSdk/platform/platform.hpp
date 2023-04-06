@@ -48,6 +48,8 @@ public:
 
     static void UpdateDesktopWnds();
 
+    static void UpdateDesktopWnds(const string& name, const string& cls);
+
     static vector<WndInfo> GetWnds();
 
     static vector<WndInfo> GetWnds(const WndInfo& info);

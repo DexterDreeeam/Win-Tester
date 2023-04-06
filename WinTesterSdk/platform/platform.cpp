@@ -18,7 +18,7 @@ platform::platform() :
     hr = CoInitialize(NULL);
     Tell("CoInitialize(NULL) error")
 
-    hr = CoCreateInstance(__uuidof(CUIAutomation), NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&_uia));
+    hr = CoCreateInstance(__uuidof(CUIAutomation8), NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&_uia));
     Tell("CoCreateInstance(__uuidof(CUIAutomation8), NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&_ctx))error");
 
     hr = _uia->CreateTrueCondition(&_con);
@@ -79,7 +79,7 @@ WndInfo platform::GetCurrentWndInfo()
 
 BOOL CALLBACK platform::_EnumWindowsCb(HWND wnd, LPARAM par)
 {
-    auto info = platform::I()->GetWndInfo(wnd);
+    auto info = platform::GetWndInfo(wnd);
     I()->_desktop_wnds[info.cls].push_back(info);
     return TRUE; // continue
 }
@@ -89,6 +89,14 @@ void platform::UpdateDesktopWnds()
     guard __g(Mutex("_desktop_wnds"));
     I()->_desktop_wnds.clear();
     EnumWindows(_EnumWindowsCb, NULL);
+}
+
+void platform::UpdateDesktopWnds(const string& name, const string& cls)
+{
+    guard __g(Mutex("_desktop_wnds"));
+    I()->_desktop_wnds.clear();
+    EnumWindows(_EnumWindowsCb, NULL);
+    auto w = FindWindowA(cls.c_str(), name.c_str());
 }
 
 vector<WndInfo> platform::GetWnds()
