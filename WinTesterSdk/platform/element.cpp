@@ -49,6 +49,7 @@ void element::_LoadProperty()
         SysFreeString(bstr);
     }
 
+    // hr = _uia_e->get_CurrentAutomationId(&bstr);
     hr = CacheElement ? _uia_e->get_CachedAutomationId(&bstr) : _uia_e->get_CurrentAutomationId(&bstr);
     if (SUCCEEDED(hr))
     {
