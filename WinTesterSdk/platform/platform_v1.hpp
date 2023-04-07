@@ -64,6 +64,12 @@ public:
 
     static void Test(point p);
 
+    static vector<string> Consoles();
+
+    static void Console(const string& c);
+
+    static void ClearConsole();
+
 private:
     static BOOL CALLBACK _EnumWindowsCb(HWND wnd, LPARAM par);
 

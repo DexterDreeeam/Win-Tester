@@ -339,22 +339,4 @@ void platform::Test(point p)
 
 }
 
-vector<string> platform::Consoles()
-{
-    guard __g(Mutex("_consoles"));
-    return I()->_consoles;
-}
-
-void platform::Console(const string& c)
-{
-    guard __g(Mutex("_consoles"));
-    return I()->_consoles.push_back(c);
-}
-
-void platform::ClearConsole()
-{
-    guard __g(Mutex("_consoles"));
-    return I()->_consoles.clear();
-}
-
 }
