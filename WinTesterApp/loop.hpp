@@ -62,16 +62,6 @@ struct GlobalInfo
         return false;
     }
 
-    static const vector<string> Consoles()
-    {
-        return slim::platform::Consoles();
-    }
-
-    static void ClearConsole()
-    {
-        slim::platform::ClearConsole();
-    }
-
     volatile GlobalState state;
     bool exiting;
     bool fast_mode;

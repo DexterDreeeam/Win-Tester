@@ -31,6 +31,8 @@ private:
 
     int _RunLoop(const vector<shared_ptr<action>>& va, int start);
 
+    bool _ActWithRetry(shared_ptr<action> ac);
+
     bool _Act(shared_ptr<action> ac);
 
     bool _ActElement(shared_ptr<action> ac);

@@ -145,7 +145,7 @@ bool runner::_RunScope(const vector<shared_ptr<action>>& va, int start, int end)
         else
         {
             // normal action
-            if (_Act(ac))
+            if (_ActWithRetry(ac))
             {
                 ++idx;
             }
@@ -237,13 +237,24 @@ int runner::_RunLoop(const vector<shared_ptr<action>>& va, int loop_start)
     return idx - loop_start;
 }
 
+bool runner::_ActWithRetry(shared_ptr<action> ac)
+{
+    const int retry = 5;
+    int times = 0;
+
+    Sleep(ac->wait_time_ms);
+    while (times < retry && !_Act(ac))
+    {
+        Sleep(1000);
+        ++times;
+    }
+    return times < retry;
+}
+
 bool runner::_Act(shared_ptr<action> ac)
 {
-    Sleep(ac->wait_time_ms);
-
     switch (ac->type)
     {
-
     case action_type::APP_LAUNCH_PATH:
         return LaunchShellFilePath(ac->parameter["path"]);
 

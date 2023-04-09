@@ -172,7 +172,7 @@ bool GuiLoop(ImGuiWindowFlags window_flags, bool& done)
         {
             if (GlobalInfo::I()->console_window)
             {
-                GlobalInfo::I()->ClearConsole();
+                // GlobalInfo::I()->ClearConsole();
             }
             GlobalInfo::I()->console_window = !GlobalInfo::I()->console_window;
             moved = true;
@@ -189,10 +189,10 @@ bool GuiLoop(ImGuiWindowFlags window_flags, bool& done)
         if (GlobalInfo::I()->console_window)
         {
             ImGui::BeginChild("Console", ImVec2(620, 500));
-            for (auto& c : GlobalInfo::I()->Consoles())
-            {
-                ImGui::Text(c.c_str());
-            }
+            //for (auto& c : GlobalInfo::I()->Consoles())
+            //{
+            //    ImGui::Text(c.c_str());
+            //}
             ImGui::EndChild();
         }
         else

@@ -51,17 +51,41 @@ mutex& platform::Mutex(const string& name)
 
 WndInfo platform::GetWndInfo(HWND wnd)
 {
-    char ch_win[256];
-    int winNameLen = GetWindowTextA(wnd, ch_win, 255);
-    ch_win[winNameLen] = 0;
+    string win, cls;
 
-    char ch_cls[256] = {};
-    int classNameLen = GetClassNameA(wnd, ch_cls, 255);
-    ch_cls[classNameLen] = 0;
+    try
+    {
+        char ch_cls[256] = {};
+        int classNameLen = GetClassNameA(wnd, ch_cls, 255);
+        ch_cls[classNameLen] = 0;
+        cls = ch_cls;
+
+        //char ch_win[256];
+        //int winNameLen = GetWindowTextA(wnd, ch_win, 255);
+        //ch_win[winNameLen] = 0;
+        //win = ch_win;
+
+        WCHAR wstr[256];
+        int winNameLen = InternalGetWindowText(wnd, wstr, 255);
+        wstr[winNameLen] = '\0';
+
+        wstring win_wstr = wstr;
+        std::transform(
+            win_wstr.begin(), win_wstr.end(),
+            std::back_inserter(win),
+            [](wchar_t c)
+            {
+                return (char)c;
+            });
+    }
+    catch (...)
+    {
+        ;
+    }
 
     WndInfo ret;
-    ret.cls = ch_cls;
-    ret.win = ch_win;
+    ret.cls = cls;
+    ret.win = win;
     ret.wnd = wnd;
     return ret;
 }
@@ -79,8 +103,13 @@ WndInfo platform::GetCurrentWndInfo()
 
 BOOL CALLBACK platform::_EnumWindowsCb(HWND wnd, LPARAM par)
 {
+    if (!wnd)
+    {
+        return FALSE;
+    }
     auto info = platform::GetWndInfo(wnd);
     I()->_desktop_wnds[info.cls].push_back(info);
+    cout << info.cls << " - " << info.win << endl;
     return TRUE; // continue
 }
 
@@ -89,6 +118,22 @@ void platform::UpdateDesktopWnds()
     guard __g(Mutex("_desktop_wnds"));
     I()->_desktop_wnds.clear();
     EnumWindows(_EnumWindowsCb, NULL);
+}
+
+void platform::UpdateDesktopWnds2()
+{
+    guard __g(Mutex("_desktop_wnds"));
+    I()->_desktop_wnds.clear();
+    HWND w = GetTopWindow(GetDesktopWindow()); // GetForegroundWindow();
+    while (w)
+    {
+        cout << " 1) " << w;
+        auto info = platform::GetWndInfo(w);
+        cout << " 2) ";
+        I()->_desktop_wnds[info.cls].push_back(info);
+        cout << " 3) " << endl;
+        w = GetWindow(w, GW_HWNDNEXT);
+    }
 }
 
 bool platform::UpdateDesktopWnds(const WndInfo& wndInfo)
