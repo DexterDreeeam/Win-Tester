@@ -65,18 +65,11 @@ WndInfo platform::GetWndInfo(HWND wnd)
         //ch_win[winNameLen] = 0;
         //win = ch_win;
 
-        WCHAR wstr[256];
-        int winNameLen = InternalGetWindowText(wnd, wstr, 255);
-        wstr[winNameLen] = '\0';
-
-        wstring win_wstr = wstr;
-        std::transform(
-            win_wstr.begin(), win_wstr.end(),
-            std::back_inserter(win),
-            [](wchar_t c)
-            {
-                return (char)c;
-            });
+        WCHAR wchars[256];
+        int winNameLen = InternalGetWindowText(wnd, wchars, 255);
+        wchars[winNameLen] = '\0';
+        wstring win_wstr = wchars;
+        win = Utf8(win_wstr);
     }
     catch (...)
     {
@@ -109,7 +102,6 @@ BOOL CALLBACK platform::_EnumWindowsCb(HWND wnd, LPARAM par)
     }
     auto info = platform::GetWndInfo(wnd);
     I()->_desktop_wnds[info.cls].push_back(info);
-    cout << info.cls << " - " << info.win << endl;
     return TRUE; // continue
 }
 
@@ -127,11 +119,8 @@ void platform::UpdateDesktopWnds2()
     HWND w = GetTopWindow(GetDesktopWindow()); // GetForegroundWindow();
     while (w)
     {
-        cout << " 1) " << w;
         auto info = platform::GetWndInfo(w);
-        cout << " 2) ";
         I()->_desktop_wnds[info.cls].push_back(info);
-        cout << " 3) " << endl;
         w = GetWindow(w, GW_HWNDNEXT);
     }
 }
