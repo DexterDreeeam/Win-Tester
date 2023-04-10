@@ -85,7 +85,7 @@ WndInfo platform::GetWndInfo(HWND wnd)
 
 WndInfo platform::GetCurrentWndInfo()
 {
-    auto hwnd = GetForegroundWindow();
+    auto hwnd = GetTopWindow(GetDesktopWindow()); // GetForegroundWindow();
     if (!hwnd)
     {
         return WndInfo();
@@ -277,10 +277,13 @@ shared_ptr<element_matched> platform::_FindElement(shared_ptr<element> self, con
 
     double score_inc = 0;
     const auto& stack = searching.ess[searching.ess_len - 1];
-    if (stack.automation_id != self->_auto_id || stack.control_type != self->_control)
+    if (stack.control_type != self->_control)
     {
         return nullptr;
     }
+
+    // max 50
+    score_inc += stack.automation_id != self->_auto_id ? 0 : self->_auto_id.size() > 0 ? 50.0 : 10.0;
 
     // max 2.0
     double lcss = (double)LCSS(stack.element_name, self->_name);

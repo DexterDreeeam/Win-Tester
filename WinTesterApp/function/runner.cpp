@@ -285,7 +285,7 @@ bool runner::_ActElement(shared_ptr<action> ac)
     shared_ptr<element> elm = nullptr;
     if (!platform::UpdateDesktopWnds(ac->wnd_info))
     {
-        platform::UpdateDesktopWnds();
+        platform::UpdateDesktopWnds2();
     }
 
     if (ac->wnd_info.IsGlobal())
